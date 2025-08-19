@@ -1,0 +1,50 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite" // swap to "postgresql" or "mysql" later and update DATABASE_URL
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               Int       @id @default(autoincrement())
+  email            String    @unique
+  password         String
+  name             String?
+  role             Role      @default(USER) // USER | COACH | ADMIN
+  heightCm         Int?
+  weightKg         Float?
+  bodyFatPct       Float?
+  goalWeightKg     Float?
+  goalBodyFatPct   Float?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  workouts         Workout[]
+  diets            Diet[]
+}
+
+model Workout {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String?
+  createdById Int
+  createdBy   User     @relation(fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+}
+
+model Diet {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String?
+  createdById Int
+  createdBy   User     @relation(fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+}
+
+enum Role {
+  USER
+  COACH
+  ADMIN
+}
