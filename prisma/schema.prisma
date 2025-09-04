@@ -12,39 +12,241 @@ model User {
   email            String    @unique
   password         String
   name             String?
-  role             Role      @default(USER) // USER | COACH | ADMIN
+  role             Role      @default(USER)
   heightCm         Int?
   weightKg         Float?
   bodyFatPct       Float?
   goalWeightKg     Float?
   goalBodyFatPct   Float?
+  age              Int?
+  gender           Gender?
+  activityLevel    ActivityLevel @default(MODERATE)
+  profileImage     String?
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
+  // Relationships
   workouts         Workout[]
   diets            Diet[]
+  exercises        Exercise[]
+  workoutSessions  WorkoutSession[]
+  progressEntries  ProgressEntry[]
+  nutritionEntries NutritionEntry[]
+  goals            Goal[]
 }
 
 model Workout {
-  id          Int      @id @default(autoincrement())
-  title       String
-  description String?
-  createdById Int
-  createdBy   User     @relation(fields: [createdById], references: [id])
-  createdAt   DateTime @default(now())
+  id              Int              @id @default(autoincrement())
+  title           String
+  description     String?
+  difficulty      Difficulty       @default(BEGINNER)
+  duration        Int?             // minutes
+  calories        Int?             // estimated calories burned
+  muscleGroups    String?          // JSON string of muscle groups array
+  equipment       String?          // JSON string of equipment array
+  createdById     Int
+  createdBy       User             @relation(fields: [createdById], references: [id])
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  
+  // Relationships
+  exercises       WorkoutExercise[]
+  sessions        WorkoutSession[]
+}
+
+model Exercise {
+  id              Int              @id @default(autoincrement())
+  name            String
+  description     String?
+  instructions    String?
+  muscleGroup     String
+  equipment       String?
+  difficulty      Difficulty       @default(BEGINNER)
+  imageUrl        String?
+  videoUrl        String?
+  createdById     Int
+  createdBy       User             @relation(fields: [createdById], references: [id])
+  createdAt       DateTime         @default(now())
+  
+  // Relationships
+  workoutExercises WorkoutExercise[]
+}
+
+model WorkoutExercise {
+  id         Int     @id @default(autoincrement())
+  workoutId  Int
+  exerciseId Int
+  sets       Int
+  reps       Int?
+  duration   Int?    // seconds
+  weight     Float?  // kg
+  restTime   Int?    // seconds
+  order      Int     @default(0)
+  
+  workout    Workout @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  exercise   Exercise @relation(fields: [exerciseId], references: [id])
+  
+  @@unique([workoutId, exerciseId])
+}
+
+model WorkoutSession {
+  id              Int       @id @default(autoincrement())
+  userId          Int
+  workoutId       Int
+  startTime       DateTime
+  endTime         DateTime?
+  caloriesBurned  Int?
+  notes           String?
+  completed       Boolean   @default(false)
+  
+  user            User      @relation(fields: [userId], references: [id])
+  workout         Workout   @relation(fields: [workoutId], references: [id])
+  
+  createdAt       DateTime  @default(now())
 }
 
 model Diet {
+  id              Int              @id @default(autoincrement())
+  title           String
+  description     String?
+  type            DietType         @default(GENERAL)
+  targetCalories  Int?
+  targetProtein   Float?           // grams
+  targetCarbs     Float?           // grams
+  targetFat       Float?           // grams
+  duration        Int?             // days
+  createdById     Int
+  createdBy       User             @relation(fields: [createdById], references: [id])
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  
+  // Relationships
+  meals           DietMeal[]
+}
+
+model Food {
+  id              Int              @id @default(autoincrement())
+  name            String
+  brand           String?
+  barcode         String?
+  caloriesPer100g Int
+  proteinPer100g  Float
+  carbsPer100g    Float
+  fatPer100g      Float
+  fiberPer100g    Float?
+  sugarPer100g    Float?
+  sodiumPer100g   Float?
+  category        String?
+  
+  // Relationships
+  nutritionEntries NutritionEntry[]
+  dietMeals       DietMeal[]
+}
+
+model DietMeal {
+  id        Int    @id @default(autoincrement())
+  dietId    Int
+  foodId    Int
+  mealType  MealType
+  quantity  Float  // grams
+  day       Int    // day of diet plan (1-based)
+  
+  diet      Diet   @relation(fields: [dietId], references: [id], onDelete: Cascade)
+  food      Food   @relation(fields: [foodId], references: [id])
+}
+
+model NutritionEntry {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  foodId    Int
+  quantity  Float    // grams consumed
+  mealType  MealType
+  date      DateTime @default(now())
+  
+  user      User     @relation(fields: [userId], references: [id])
+  food      Food     @relation(fields: [foodId], references: [id])
+}
+
+model ProgressEntry {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  date      DateTime @default(now())
+  weight    Float?
+  bodyFat   Float?
+  muscle    Float?
+  photos    String?  // JSON string of photo URLs array
+  notes     String?
+  
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model Goal {
   id          Int      @id @default(autoincrement())
+  userId      Int
+  type        GoalType
   title       String
   description String?
-  createdById Int
-  createdBy   User     @relation(fields: [createdById], references: [id])
+  targetValue Float?
+  currentValue Float?  @default(0)
+  deadline    DateTime?
+  completed   Boolean  @default(false)
   createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  user        User     @relation(fields: [userId], references: [id])
 }
 
 enum Role {
   USER
   COACH
   ADMIN
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum ActivityLevel {
+  SEDENTARY
+  LIGHT
+  MODERATE
+  ACTIVE
+  VERY_ACTIVE
+}
+
+enum Difficulty {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum DietType {
+  WEIGHT_LOSS
+  WEIGHT_GAIN
+  MUSCLE_GAIN
+  MAINTENANCE
+  KETO
+  PALEO
+  VEGETARIAN
+  VEGAN
+  GENERAL
+}
+
+enum MealType {
+  BREAKFAST
+  LUNCH
+  DINNER
+  SNACK
+}
+
+enum GoalType {
+  WEIGHT_LOSS
+  WEIGHT_GAIN
+  MUSCLE_GAIN
+  STRENGTH
+  ENDURANCE
+  BODY_FAT
+  CUSTOM
 }
