@@ -40,7 +40,15 @@ const authLimiter = rateLimit({
   message: 'Too many authentication attempts, please try again later.'
 });
 
-app.use(cors({ origin: '*', credentials: true }));
+// CORS configuration
+const allowedOrigins = process.env.ALLOWED_ORIGINS 
+  ? process.env.ALLOWED_ORIGINS.split(',')
+  : ['http://localhost:3000', 'http://localhost:8081']; // React Native dev defaults
+
+app.use(cors({ 
+  origin: process.env.NODE_ENV === 'production' ? allowedOrigins : '*', 
+  credentials: true 
+}));
 app.use(express.json({ limit: '10mb' }));
 app.use(cookieParser());
 
@@ -71,6 +79,17 @@ registerSockets(io);
 const PORT = process.env.PORT || 5000;
 
 (async () => {
-  await connectMongo(process.env.MONGO_URI);
+  try {
+    // Try to connect to MongoDB, but don't fail if it doesn't work
+    if (process.env.MONGO_URI) {
+      await connectMongo(process.env.MONGO_URI);
+      console.log('MongoDB connected successfully');
+    } else {
+      console.log('No MongoDB URI provided, running without chat functionality');
+    }
+  } catch (error) {
+    console.warn('MongoDB connection failed, continuing without chat:', error.message);
+  }
+  
   server.listen(PORT, () => console.log(`Server listening on ${PORT}`));
 })();
