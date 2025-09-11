@@ -26,7 +26,23 @@ router.post("/register", async (req, res) => {
       }
     });
 
-    res.status(201).json({ message: "User registered successfully" });
+    // generate token immediately after registration
+    const token = jwt.sign(
+      { id: newUser.id, email: newUser.email },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    res.status(201).json({ 
+      token,
+      user: {
+        id: newUser.id,
+        name: newUser.name,
+        email: newUser.email,
+        role: newUser.role
+      },
+      message: "User registered successfully" 
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
