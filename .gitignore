@@ -3,3 +3,7 @@ node_modules
 .env
 
 /generated/prisma
+
+# Admin credentials
+src/seeders/admin-user.js
+src/seeders/create-admin.js

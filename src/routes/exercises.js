@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const prisma = require('../config/prisma');
 const auth = require('../middleware/auth');
+const adminAuth = require('../middleware/adminAuth');
 
 // Get all exercises
 router.get('/', async (req, res) => {
@@ -57,13 +58,9 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// Create exercise (coach/admin only)
-router.post('/', auth, async (req, res) => {
+// Create exercise (ADMIN ONLY)
+router.post('/', adminAuth, async (req, res) => {
   try {
-    if (req.user.role !== 'COACH' && req.user.role !== 'ADMIN') {
-      return res.status(403).json({ error: 'Only coaches and admins can create exercises' });
-    }
-    
     const {
       name,
       description,
@@ -74,6 +71,14 @@ router.post('/', auth, async (req, res) => {
       imageUrl,
       videoUrl
     } = req.body;
+
+    // Validate required fields
+    if (!name) {
+      return res.status(400).json({ error: 'Exercise name is required' });
+    }
+    if (!muscleGroup) {
+      return res.status(400).json({ error: 'Muscle group is required' });
+    }
     
     const exercise = await prisma.exercise.create({
       data: {
@@ -100,22 +105,18 @@ router.post('/', auth, async (req, res) => {
   }
 });
 
-// Update exercise
-router.put('/:id', auth, async (req, res) => {
+// Update exercise (ADMIN ONLY)
+router.put('/:id', adminAuth, async (req, res) => {
   try {
     const exerciseId = parseInt(req.params.id);
     
-    // Check if user owns the exercise or is admin
+    // Check if exercise exists
     const exercise = await prisma.exercise.findUnique({
       where: { id: exerciseId }
     });
     
     if (!exercise) {
       return res.status(404).json({ error: 'Exercise not found' });
-    }
-    
-    if (exercise.createdById !== req.user.id && req.user.role !== 'ADMIN') {
-      return res.status(403).json({ error: 'Not authorized to update this exercise' });
     }
     
     const updatedExercise = await prisma.exercise.update({
@@ -134,8 +135,8 @@ router.put('/:id', auth, async (req, res) => {
   }
 });
 
-// Delete exercise
-router.delete('/:id', auth, async (req, res) => {
+// Delete exercise (ADMIN ONLY)
+router.delete('/:id', adminAuth, async (req, res) => {
   try {
     const exerciseId = parseInt(req.params.id);
     
@@ -145,10 +146,6 @@ router.delete('/:id', auth, async (req, res) => {
     
     if (!exercise) {
       return res.status(404).json({ error: 'Exercise not found' });
-    }
-    
-    if (exercise.createdById !== req.user.id && req.user.role !== 'ADMIN') {
-      return res.status(403).json({ error: 'Not authorized to delete this exercise' });
     }
     
     await prisma.exercise.delete({
