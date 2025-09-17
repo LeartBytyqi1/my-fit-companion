@@ -8,7 +8,7 @@ const router = express.Router();
 // REGISTER
 router.post("/register", async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, height, weight, bodyFat, goal } = req.body;
 
     // check if user exists
     const existing = await prisma.user.findUnique({ where: { email } });
@@ -18,12 +18,19 @@ router.post("/register", async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
+    // Prepare user data - handle optional fields
+    const userData = {
+      name,
+      email,
+      password: hashedPassword,
+      ...(height && { heightCm: Math.round(height) }), // Convert to int for heightCm
+      ...(weight && { weightKg: weight }),
+      ...(bodyFat && { bodyFatPct: bodyFat }),
+      ...(goal && { goalWeightKg: goal }) // Assuming goal refers to goal weight
+    };
+
     const newUser = await prisma.user.create({
-      data: {
-        name,
-        email,
-        password: hashedPassword
-      }
+      data: userData
     });
 
     // generate token immediately after registration
@@ -40,6 +47,10 @@ router.post("/register", async (req, res) => {
         name: newUser.name,
         email: newUser.email,
         role: newUser.role,
+        heightCm: newUser.heightCm,
+        weightKg: newUser.weightKg,
+        bodyFatPct: newUser.bodyFatPct,
+        goalWeightKg: newUser.goalWeightKg,
         createdAt: newUser.createdAt.toISOString()
       },
       message: "User registered successfully" 
@@ -81,7 +92,5 @@ router.post("/login", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
-module.exports = router;
 
 module.exports = router;
