@@ -10,6 +10,7 @@ const { registerSockets } = require('./sockets');
 
 // Route imports
 const authRoutes = require('./routes/auth');
+const adminRoutes = require('./routes/admin');
 const postRoutes = require('./routes/posts');
 const workoutRoutes = require('./routes/workouts');
 const dietRoutes = require('./routes/diets');
@@ -60,6 +61,7 @@ app.use('/uploads', express.static('uploads'));
 
 // REST routes
 app.use('/api/auth', authLimiter, authRoutes);
+app.use('/api/admin', adminRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/workouts', workoutRoutes);
 app.use('/api/diets', dietRoutes);

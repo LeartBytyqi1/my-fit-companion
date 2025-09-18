@@ -12,6 +12,8 @@ model User {
   email            String    @unique
   password         String
   name             String?
+  firstName        String?
+  lastName         String?
   role             Role      @default(USER)
   heightCm         Int?
   weightKg         Float?
