@@ -20,6 +20,7 @@ const progressRoutes = require('./routes/progress');
 const sessionRoutes = require('./routes/sessions');
 const nutritionRoutes = require('./routes/nutrition');
 const goalRoutes = require('./routes/goals');
+const trainersRoutes = require('./routes/trainers');
 
 const app = express();
 
@@ -71,6 +72,7 @@ app.use('/api/progress', progressRoutes);
 app.use('/api/sessions', sessionRoutes);
 app.use('/api/nutrition', nutritionRoutes);
 app.use('/api/goals', goalRoutes);
+app.use('/api/trainers', trainersRoutes);
 
 // HTTP + Socket.io server
 const server = http.createServer(app);
