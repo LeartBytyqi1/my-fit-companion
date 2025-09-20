@@ -765,6 +765,44 @@ router.delete("/exercises/:id", async (req, res) => {
 
 // ===== TRAINERS ENDPOINTS =====
 
+// GET /admin/trainers - Get all trainers
+router.get("/trainers", async (req, res) => {
+  try {
+    const trainers = await prisma.user.findMany({
+      where: { 
+        role: 'TRAINER' 
+      },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        specialization: true,
+        contactInfo: true,
+        createdAt: true,
+        updatedAt: true
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+
+    const trainersResponse = trainers.map(trainer => ({
+      trainerId: trainer.id, // Use id as trainerId for mobile app compatibility
+      firstName: trainer.firstName,
+      lastName: trainer.lastName,
+      email: trainer.email,
+      specialization: trainer.specialization,
+      contactInfo: trainer.contactInfo
+    }));
+
+    res.json(trainersResponse);
+  } catch (error) {
+    console.error("Error fetching trainers:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // POST /admin/trainers - Create new trainer (creates user with TRAINER role)
 router.post("/trainers", async (req, res) => {
   try {
