@@ -481,13 +481,21 @@ router.post("/sessions", async (req, res) => {
         duration,
         imageUrl: imageUrl || null,
         completed: false
+      },
+      select: {
+        id: true,
+        name: true,
+        startTime: true,
+        duration: true,
+        userId: true,
+        imageUrl: true
       }
     });
 
     res.status(201).json({
       id: newSession.id,
       name: newSession.name,
-      date: newSession.startTime.toISOString(),
+      date: newSession.startTime ? newSession.startTime.toISOString() : null,
       duration: newSession.duration,
       userId: newSession.userId,
       imageUrl: newSession.imageUrl
@@ -546,13 +554,21 @@ router.put("/sessions/:id", async (req, res) => {
     // Update session
     const updatedSession = await prisma.workoutSession.update({
       where: { id: sessionId },
-      data: updateData
+      data: updateData,
+      select: {
+        id: true,
+        name: true,
+        startTime: true,
+        duration: true,
+        userId: true,
+        imageUrl: true
+      }
     });
 
     res.json({
       id: updatedSession.id,
       name: updatedSession.name,
-      date: updatedSession.startTime.toISOString(),
+      date: updatedSession.startTime ? updatedSession.startTime.toISOString() : null,
       duration: updatedSession.duration,
       userId: updatedSession.userId,
       imageUrl: updatedSession.imageUrl
