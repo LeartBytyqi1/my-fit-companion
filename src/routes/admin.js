@@ -78,10 +78,10 @@ router.post("/users", async (req, res) => {
     }
 
     // Validate role
-    const validRoles = ['USER', 'COACH', 'ADMIN'];
+    const validRoles = ['USER', 'TRAINER', 'ADMIN'];
     if (!validRoles.includes(role)) {
       return res.status(400).json({ 
-        error: "Invalid role. Must be one of: USER, COACH, ADMIN" 
+        error: "Invalid role. Must be one of: USER, TRAINER, ADMIN" 
       });
     }
 
@@ -178,10 +178,10 @@ router.put("/users/:id", async (req, res) => {
 
     // Validate role if provided
     if (role) {
-      const validRoles = ['USER', 'COACH', 'ADMIN'];
+      const validRoles = ['USER', 'TRAINER', 'ADMIN'];
       if (!validRoles.includes(role)) {
         return res.status(400).json({ 
-          error: "Invalid role. Must be one of: USER, COACH, ADMIN" 
+          error: "Invalid role. Must be one of: USER, TRAINER, ADMIN" 
         });
       }
     }

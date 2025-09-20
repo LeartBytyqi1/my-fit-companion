@@ -218,7 +218,6 @@ model Meal {
 enum Role {
   USER
   TRAINER
-  COACH
   ADMIN
 }
 
