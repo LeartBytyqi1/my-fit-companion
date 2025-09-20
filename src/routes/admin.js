@@ -765,7 +765,7 @@ router.delete("/exercises/:id", async (req, res) => {
 
 // ===== TRAINERS ENDPOINTS =====
 
-// POST /admin/trainers - Create new trainer
+// POST /admin/trainers - Create new trainer (creates user with TRAINER role)
 router.post("/trainers", async (req, res) => {
   try {
     const { firstName, lastName, email, password, specialization, contactInfo } = req.body;
@@ -777,12 +777,12 @@ router.post("/trainers", async (req, res) => {
       });
     }
 
-    // Check if trainer email already exists
-    const existingTrainer = await prisma.trainer.findUnique({ 
+    // Check if user email already exists
+    const existingUser = await prisma.user.findUnique({ 
       where: { email } 
     });
 
-    if (existingTrainer) {
+    if (existingUser) {
       return res.status(400).json({ error: "Email already in use" });
     }
 
@@ -790,20 +790,33 @@ router.post("/trainers", async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Create trainer
-    const newTrainer = await prisma.trainer.create({
+    // Create trainer user
+    const newTrainer = await prisma.user.create({
       data: {
         firstName,
         lastName,
+        name: `${firstName} ${lastName}`, // Keep name field for backward compatibility
         email,
         password: hashedPassword,
+        role: 'TRAINER',
         specialization: specialization || null,
         contactInfo: contactInfo || null
+      },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        role: true,
+        specialization: true,
+        contactInfo: true,
+        createdAt: true,
+        updatedAt: true
       }
     });
 
     res.status(201).json({
-      trainerId: newTrainer.trainerId,
+      trainerId: newTrainer.id, // Use id as trainerId for mobile app compatibility
       firstName: newTrainer.firstName,
       lastName: newTrainer.lastName,
       email: newTrainer.email,
@@ -826,18 +839,21 @@ router.put("/trainers/:id", async (req, res) => {
       return res.status(400).json({ error: "Invalid trainer ID" });
     }
 
-    // Check if trainer exists
-    const existingTrainer = await prisma.trainer.findUnique({
-      where: { trainerId: trainerId }
+    // Check if trainer exists (user with TRAINER role)
+    const existingTrainer = await prisma.user.findFirst({
+      where: { 
+        id: trainerId,
+        role: 'TRAINER'
+      }
     });
 
     if (!existingTrainer) {
       return res.status(404).json({ error: "Trainer not found" });
     }
 
-    // Check if email is already taken by another trainer
+    // Check if email is already taken by another user
     if (email && email !== existingTrainer.email) {
-      const emailTaken = await prisma.trainer.findUnique({
+      const emailTaken = await prisma.user.findUnique({
         where: { email }
       });
       if (emailTaken) {
@@ -853,14 +869,32 @@ router.put("/trainers/:id", async (req, res) => {
     if (specialization !== undefined) updateData.specialization = specialization;
     if (contactInfo !== undefined) updateData.contactInfo = contactInfo;
 
+    // Update name field if firstName or lastName changed for backward compatibility
+    if (firstName !== undefined || lastName !== undefined) {
+      const newFirstName = firstName !== undefined ? firstName : existingTrainer.firstName;
+      const newLastName = lastName !== undefined ? lastName : existingTrainer.lastName;
+      updateData.name = `${newFirstName || ''} ${newLastName || ''}`.trim();
+    }
+
     // Update trainer
-    const updatedTrainer = await prisma.trainer.update({
-      where: { trainerId: trainerId },
-      data: updateData
+    const updatedTrainer = await prisma.user.update({
+      where: { id: trainerId },
+      data: updateData,
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        role: true,
+        specialization: true,
+        contactInfo: true,
+        createdAt: true,
+        updatedAt: true
+      }
     });
 
     res.json({
-      trainerId: updatedTrainer.trainerId,
+      trainerId: updatedTrainer.id, // Use id as trainerId for mobile app compatibility
       firstName: updatedTrainer.firstName,
       lastName: updatedTrainer.lastName,
       email: updatedTrainer.email,
@@ -882,18 +916,26 @@ router.delete("/trainers/:id", async (req, res) => {
       return res.status(400).json({ error: "Invalid trainer ID" });
     }
 
-    // Check if trainer exists
-    const existingTrainer = await prisma.trainer.findUnique({
-      where: { trainerId: trainerId }
+    // Check if trainer exists (user with TRAINER role)
+    const existingTrainer = await prisma.user.findFirst({
+      where: { 
+        id: trainerId,
+        role: 'TRAINER'
+      }
     });
 
     if (!existingTrainer) {
       return res.status(404).json({ error: "Trainer not found" });
     }
 
-    // Delete trainer
-    await prisma.trainer.delete({
-      where: { trainerId: trainerId }
+    // Prevent admin from deleting themselves if they happen to be a trainer too
+    if (trainerId === req.user.id) {
+      return res.status(400).json({ error: "Cannot delete your own account" });
+    }
+
+    // Delete trainer (this will be a user deletion)
+    await prisma.user.delete({
+      where: { id: trainerId }
     });
 
     res.status(204).send(); // No content response for successful deletion

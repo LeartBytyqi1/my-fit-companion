@@ -24,6 +24,8 @@ model User {
   gender           Gender?
   activityLevel    ActivityLevel @default(MODERATE)
   profileImage     String?
+  specialization   String?   // For trainers
+  contactInfo      String?   // For trainers
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
@@ -213,20 +215,9 @@ model Meal {
   updatedAt   DateTime @updatedAt
 }
 
-model Trainer {
-  trainerId     Int      @id @default(autoincrement())
-  firstName     String
-  lastName      String
-  email         String   @unique
-  password      String
-  specialization String?
-  contactInfo   String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-}
-
 enum Role {
   USER
+  TRAINER
   COACH
   ADMIN
 }
