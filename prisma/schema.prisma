@@ -59,11 +59,14 @@ model Workout {
 model Exercise {
   id              Int              @id @default(autoincrement())
   name            String
+  type            String           // Added for exercise type
   description     String?
   instructions    String?
   muscleGroup     String
   equipment       String?
   difficulty      Difficulty       @default(BEGINNER)
+  duration        Int?             // in minutes (modified from existing)
+  caloriesBurned  Int?             // Added for calories burned
   imageUrl        String?
   videoUrl        String?
   createdById     Int
@@ -93,16 +96,19 @@ model WorkoutExercise {
 
 model WorkoutSession {
   id              Int       @id @default(autoincrement())
+  name            String?   // Added for session name
   userId          Int
-  workoutId       Int
-  startTime       DateTime
+  workoutId       Int?      // Made optional for standalone sessions
+  startTime       DateTime  // Will be used as the session date
   endTime         DateTime?
+  duration        Int?      // in minutes
   caloriesBurned  Int?
   notes           String?
   completed       Boolean   @default(false)
+  imageUrl        String?   // Added for session image
   
   user            User      @relation(fields: [userId], references: [id])
-  workout         Workout   @relation(fields: [workoutId], references: [id])
+  workout         Workout?  @relation(fields: [workoutId], references: [id])
   
   createdAt       DateTime  @default(now())
 }
@@ -196,6 +202,27 @@ model Goal {
   updatedAt   DateTime @updatedAt
   
   user        User     @relation(fields: [userId], references: [id])
+}
+
+model Meal {
+  id          Int      @id @default(autoincrement())
+  name        String
+  calories    Int
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Trainer {
+  trainerId     Int      @id @default(autoincrement())
+  firstName     String
+  lastName      String
+  email         String   @unique
+  password      String
+  specialization String?
+  contactInfo   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 enum Role {

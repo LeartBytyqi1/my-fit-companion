@@ -298,4 +298,609 @@ router.delete("/users/:id", async (req, res) => {
   }
 });
 
+// ===== MEALS ENDPOINTS =====
+
+// POST /admin/meals - Create new meal
+router.post("/meals", async (req, res) => {
+  try {
+    const { name, calories, description } = req.body;
+
+    // Validate required fields
+    if (!name || calories === undefined) {
+      return res.status(400).json({ 
+        error: "Missing required fields: name, calories" 
+      });
+    }
+
+    // Validate calories is a number
+    if (typeof calories !== 'number' || calories < 0) {
+      return res.status(400).json({ 
+        error: "Calories must be a positive number" 
+      });
+    }
+
+    // Create meal
+    const newMeal = await prisma.meal.create({
+      data: {
+        name,
+        calories,
+        description: description || null
+      }
+    });
+
+    res.status(201).json({
+      id: newMeal.id,
+      name: newMeal.name,
+      calories: newMeal.calories,
+      description: newMeal.description
+    });
+  } catch (error) {
+    console.error("Error creating meal:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// GET /admin/meals - Get all meals
+router.get("/meals", async (req, res) => {
+  try {
+    const meals = await prisma.meal.findMany({
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+
+    const mealsResponse = meals.map(meal => ({
+      id: meal.id,
+      name: meal.name,
+      calories: meal.calories,
+      description: meal.description
+    }));
+
+    res.json(mealsResponse);
+  } catch (error) {
+    console.error("Error fetching meals:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// PUT /admin/meals/:id - Update meal
+router.put("/meals/:id", async (req, res) => {
+  try {
+    const mealId = parseInt(req.params.id);
+    const { name, calories, description } = req.body;
+
+    if (isNaN(mealId)) {
+      return res.status(400).json({ error: "Invalid meal ID" });
+    }
+
+    // Check if meal exists
+    const existingMeal = await prisma.meal.findUnique({
+      where: { id: mealId }
+    });
+
+    if (!existingMeal) {
+      return res.status(404).json({ error: "Meal not found" });
+    }
+
+    // Validate calories if provided
+    if (calories !== undefined && (typeof calories !== 'number' || calories < 0)) {
+      return res.status(400).json({ 
+        error: "Calories must be a positive number" 
+      });
+    }
+
+    // Build update data object
+    const updateData = {};
+    if (name !== undefined) updateData.name = name;
+    if (calories !== undefined) updateData.calories = calories;
+    if (description !== undefined) updateData.description = description;
+
+    // Update meal
+    const updatedMeal = await prisma.meal.update({
+      where: { id: mealId },
+      data: updateData
+    });
+
+    res.json({
+      id: updatedMeal.id,
+      name: updatedMeal.name,
+      calories: updatedMeal.calories,
+      description: updatedMeal.description
+    });
+  } catch (error) {
+    console.error("Error updating meal:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// DELETE /admin/meals/:id - Delete meal
+router.delete("/meals/:id", async (req, res) => {
+  try {
+    const mealId = parseInt(req.params.id);
+
+    if (isNaN(mealId)) {
+      return res.status(400).json({ error: "Invalid meal ID" });
+    }
+
+    // Check if meal exists
+    const existingMeal = await prisma.meal.findUnique({
+      where: { id: mealId }
+    });
+
+    if (!existingMeal) {
+      return res.status(404).json({ error: "Meal not found" });
+    }
+
+    // Delete meal
+    await prisma.meal.delete({
+      where: { id: mealId }
+    });
+
+    res.status(204).send(); // No content response for successful deletion
+  } catch (error) {
+    console.error("Error deleting meal:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ===== SESSIONS ENDPOINTS =====
+
+// POST /admin/sessions - Create new session
+router.post("/sessions", async (req, res) => {
+  try {
+    const { name, date, duration, userId, imageUrl } = req.body;
+
+    // Validate required fields
+    if (!name || !date || !duration || !userId) {
+      return res.status(400).json({ 
+        error: "Missing required fields: name, date, duration, userId" 
+      });
+    }
+
+    // Validate userId exists
+    const user = await prisma.user.findUnique({
+      where: { id: userId }
+    });
+
+    if (!user) {
+      return res.status(400).json({ error: "User not found" });
+    }
+
+    // Convert date from millis to Date object
+    const sessionDate = new Date(date);
+    if (isNaN(sessionDate.getTime())) {
+      return res.status(400).json({ error: "Invalid date format" });
+    }
+
+    // Create session
+    const newSession = await prisma.workoutSession.create({
+      data: {
+        name,
+        userId,
+        startTime: sessionDate,
+        duration,
+        imageUrl: imageUrl || null,
+        completed: false
+      }
+    });
+
+    res.status(201).json({
+      id: newSession.id,
+      name: newSession.name,
+      date: newSession.startTime.toISOString(),
+      duration: newSession.duration,
+      userId: newSession.userId,
+      imageUrl: newSession.imageUrl
+    });
+  } catch (error) {
+    console.error("Error creating session:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// PUT /admin/sessions/:id - Update session
+router.put("/sessions/:id", async (req, res) => {
+  try {
+    const sessionId = parseInt(req.params.id);
+    const { name, date, duration, userId, imageUrl } = req.body;
+
+    if (isNaN(sessionId)) {
+      return res.status(400).json({ error: "Invalid session ID" });
+    }
+
+    // Check if session exists
+    const existingSession = await prisma.workoutSession.findUnique({
+      where: { id: sessionId }
+    });
+
+    if (!existingSession) {
+      return res.status(404).json({ error: "Session not found" });
+    }
+
+    // Validate userId if provided
+    if (userId !== undefined) {
+      const user = await prisma.user.findUnique({
+        where: { id: userId }
+      });
+
+      if (!user) {
+        return res.status(400).json({ error: "User not found" });
+      }
+    }
+
+    // Build update data object
+    const updateData = {};
+    if (name !== undefined) updateData.name = name;
+    if (userId !== undefined) updateData.userId = userId;
+    if (duration !== undefined) updateData.duration = duration;
+    if (imageUrl !== undefined) updateData.imageUrl = imageUrl;
+    
+    if (date !== undefined) {
+      const sessionDate = new Date(date);
+      if (isNaN(sessionDate.getTime())) {
+        return res.status(400).json({ error: "Invalid date format" });
+      }
+      updateData.startTime = sessionDate;
+    }
+
+    // Update session
+    const updatedSession = await prisma.workoutSession.update({
+      where: { id: sessionId },
+      data: updateData
+    });
+
+    res.json({
+      id: updatedSession.id,
+      name: updatedSession.name,
+      date: updatedSession.startTime.toISOString(),
+      duration: updatedSession.duration,
+      userId: updatedSession.userId,
+      imageUrl: updatedSession.imageUrl
+    });
+  } catch (error) {
+    console.error("Error updating session:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// DELETE /admin/sessions/:id - Delete session
+router.delete("/sessions/:id", async (req, res) => {
+  try {
+    const sessionId = parseInt(req.params.id);
+
+    if (isNaN(sessionId)) {
+      return res.status(400).json({ error: "Invalid session ID" });
+    }
+
+    // Check if session exists
+    const existingSession = await prisma.workoutSession.findUnique({
+      where: { id: sessionId }
+    });
+
+    if (!existingSession) {
+      return res.status(404).json({ error: "Session not found" });
+    }
+
+    // Delete session
+    await prisma.workoutSession.delete({
+      where: { id: sessionId }
+    });
+
+    res.status(204).send(); // No content response for successful deletion
+  } catch (error) {
+    console.error("Error deleting session:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ===== EXERCISES ENDPOINTS =====
+
+// POST /admin/exercises - Create new exercise
+router.post("/exercises", async (req, res) => {
+  try {
+    const { name, type, duration, caloriesBurned } = req.body;
+
+    // Validate required fields
+    if (!name || !type || duration === undefined || caloriesBurned === undefined) {
+      return res.status(400).json({ 
+        error: "Missing required fields: name, type, duration, caloriesBurned" 
+      });
+    }
+
+    // Validate numeric fields
+    if (typeof duration !== 'number' || duration <= 0) {
+      return res.status(400).json({ 
+        error: "Duration must be a positive number (in minutes)" 
+      });
+    }
+
+    if (typeof caloriesBurned !== 'number' || caloriesBurned < 0) {
+      return res.status(400).json({ 
+        error: "Calories burned must be a non-negative number" 
+      });
+    }
+
+    // We need a createdById field - use the admin user's ID
+    const adminUser = req.user; // from auth middleware
+
+    // Create exercise
+    const newExercise = await prisma.exercise.create({
+      data: {
+        name,
+        type,
+        duration,
+        caloriesBurned,
+        muscleGroup: type, // Use type as muscle group for simplicity
+        createdById: adminUser.id
+      }
+    });
+
+    res.status(201).json({
+      id: newExercise.id,
+      name: newExercise.name,
+      type: newExercise.type,
+      duration: newExercise.duration,
+      caloriesBurned: newExercise.caloriesBurned
+    });
+  } catch (error) {
+    console.error("Error creating exercise:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// GET /admin/exercises - Get all exercises
+router.get("/exercises", async (req, res) => {
+  try {
+    const exercises = await prisma.exercise.findMany({
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+
+    const exercisesResponse = exercises.map(exercise => ({
+      id: exercise.id,
+      name: exercise.name,
+      type: exercise.type,
+      duration: exercise.duration,
+      caloriesBurned: exercise.caloriesBurned
+    }));
+
+    res.json(exercisesResponse);
+  } catch (error) {
+    console.error("Error fetching exercises:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// PUT /admin/exercises/:id - Update exercise
+router.put("/exercises/:id", async (req, res) => {
+  try {
+    const exerciseId = parseInt(req.params.id);
+    const { name, type, duration, caloriesBurned } = req.body;
+
+    if (isNaN(exerciseId)) {
+      return res.status(400).json({ error: "Invalid exercise ID" });
+    }
+
+    // Check if exercise exists
+    const existingExercise = await prisma.exercise.findUnique({
+      where: { id: exerciseId }
+    });
+
+    if (!existingExercise) {
+      return res.status(404).json({ error: "Exercise not found" });
+    }
+
+    // Validate numeric fields if provided
+    if (duration !== undefined && (typeof duration !== 'number' || duration <= 0)) {
+      return res.status(400).json({ 
+        error: "Duration must be a positive number (in minutes)" 
+      });
+    }
+
+    if (caloriesBurned !== undefined && (typeof caloriesBurned !== 'number' || caloriesBurned < 0)) {
+      return res.status(400).json({ 
+        error: "Calories burned must be a non-negative number" 
+      });
+    }
+
+    // Build update data object
+    const updateData = {};
+    if (name !== undefined) updateData.name = name;
+    if (type !== undefined) {
+      updateData.type = type;
+      updateData.muscleGroup = type; // Update muscle group as well
+    }
+    if (duration !== undefined) updateData.duration = duration;
+    if (caloriesBurned !== undefined) updateData.caloriesBurned = caloriesBurned;
+
+    // Update exercise
+    const updatedExercise = await prisma.exercise.update({
+      where: { id: exerciseId },
+      data: updateData
+    });
+
+    res.json({
+      id: updatedExercise.id,
+      name: updatedExercise.name,
+      type: updatedExercise.type,
+      duration: updatedExercise.duration,
+      caloriesBurned: updatedExercise.caloriesBurned
+    });
+  } catch (error) {
+    console.error("Error updating exercise:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// DELETE /admin/exercises/:id - Delete exercise
+router.delete("/exercises/:id", async (req, res) => {
+  try {
+    const exerciseId = parseInt(req.params.id);
+
+    if (isNaN(exerciseId)) {
+      return res.status(400).json({ error: "Invalid exercise ID" });
+    }
+
+    // Check if exercise exists
+    const existingExercise = await prisma.exercise.findUnique({
+      where: { id: exerciseId }
+    });
+
+    if (!existingExercise) {
+      return res.status(404).json({ error: "Exercise not found" });
+    }
+
+    // Delete exercise
+    await prisma.exercise.delete({
+      where: { id: exerciseId }
+    });
+
+    res.status(204).send(); // No content response for successful deletion
+  } catch (error) {
+    console.error("Error deleting exercise:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ===== TRAINERS ENDPOINTS =====
+
+// POST /admin/trainers - Create new trainer
+router.post("/trainers", async (req, res) => {
+  try {
+    const { firstName, lastName, email, password, specialization, contactInfo } = req.body;
+
+    // Validate required fields
+    if (!firstName || !lastName || !email || !password) {
+      return res.status(400).json({ 
+        error: "Missing required fields: firstName, lastName, email, password" 
+      });
+    }
+
+    // Check if trainer email already exists
+    const existingTrainer = await prisma.trainer.findUnique({ 
+      where: { email } 
+    });
+
+    if (existingTrainer) {
+      return res.status(400).json({ error: "Email already in use" });
+    }
+
+    // Hash password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Create trainer
+    const newTrainer = await prisma.trainer.create({
+      data: {
+        firstName,
+        lastName,
+        email,
+        password: hashedPassword,
+        specialization: specialization || null,
+        contactInfo: contactInfo || null
+      }
+    });
+
+    res.status(201).json({
+      trainerId: newTrainer.trainerId,
+      firstName: newTrainer.firstName,
+      lastName: newTrainer.lastName,
+      email: newTrainer.email,
+      specialization: newTrainer.specialization,
+      contactInfo: newTrainer.contactInfo
+    });
+  } catch (error) {
+    console.error("Error creating trainer:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// PUT /admin/trainers/:id - Update trainer
+router.put("/trainers/:id", async (req, res) => {
+  try {
+    const trainerId = parseInt(req.params.id);
+    const { firstName, lastName, email, specialization, contactInfo } = req.body;
+
+    if (isNaN(trainerId)) {
+      return res.status(400).json({ error: "Invalid trainer ID" });
+    }
+
+    // Check if trainer exists
+    const existingTrainer = await prisma.trainer.findUnique({
+      where: { trainerId: trainerId }
+    });
+
+    if (!existingTrainer) {
+      return res.status(404).json({ error: "Trainer not found" });
+    }
+
+    // Check if email is already taken by another trainer
+    if (email && email !== existingTrainer.email) {
+      const emailTaken = await prisma.trainer.findUnique({
+        where: { email }
+      });
+      if (emailTaken) {
+        return res.status(400).json({ error: "Email already in use" });
+      }
+    }
+
+    // Build update data object (only include fields that were provided)
+    const updateData = {};
+    if (firstName !== undefined) updateData.firstName = firstName;
+    if (lastName !== undefined) updateData.lastName = lastName;
+    if (email !== undefined) updateData.email = email;
+    if (specialization !== undefined) updateData.specialization = specialization;
+    if (contactInfo !== undefined) updateData.contactInfo = contactInfo;
+
+    // Update trainer
+    const updatedTrainer = await prisma.trainer.update({
+      where: { trainerId: trainerId },
+      data: updateData
+    });
+
+    res.json({
+      trainerId: updatedTrainer.trainerId,
+      firstName: updatedTrainer.firstName,
+      lastName: updatedTrainer.lastName,
+      email: updatedTrainer.email,
+      specialization: updatedTrainer.specialization,
+      contactInfo: updatedTrainer.contactInfo
+    });
+  } catch (error) {
+    console.error("Error updating trainer:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// DELETE /admin/trainers/:id - Delete trainer
+router.delete("/trainers/:id", async (req, res) => {
+  try {
+    const trainerId = parseInt(req.params.id);
+
+    if (isNaN(trainerId)) {
+      return res.status(400).json({ error: "Invalid trainer ID" });
+    }
+
+    // Check if trainer exists
+    const existingTrainer = await prisma.trainer.findUnique({
+      where: { trainerId: trainerId }
+    });
+
+    if (!existingTrainer) {
+      return res.status(404).json({ error: "Trainer not found" });
+    }
+
+    // Delete trainer
+    await prisma.trainer.delete({
+      where: { trainerId: trainerId }
+    });
+
+    res.status(204).send(); // No content response for successful deletion
+  } catch (error) {
+    console.error("Error deleting trainer:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 module.exports = router;
