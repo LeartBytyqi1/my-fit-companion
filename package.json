@@ -23,6 +23,7 @@
   "homepage": "https://github.com/LeartBytyqi1/my-fit-companion#readme",
   "dependencies": {
     "@prisma/client": "^6.14.0",
+    "axios": "^1.12.2",
     "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.2",
     "cookie-parser": "^1.4.7",

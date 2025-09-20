@@ -472,6 +472,8 @@ router.post("/sessions", async (req, res) => {
       return res.status(400).json({ error: "Invalid date format" });
     }
 
+    console.log('Creating session with date:', sessionDate.toISOString());
+
     // Create session
     const newSession = await prisma.workoutSession.create({
       data: {
@@ -492,16 +494,114 @@ router.post("/sessions", async (req, res) => {
       }
     });
 
-    res.status(201).json({
+    console.log('Created session:', {
+      id: newSession.id,
+      startTime: newSession.startTime,
+      startTimeISO: newSession.startTime ? newSession.startTime.toISOString() : 'NULL'
+    });
+
+    const response = {
       id: newSession.id,
       name: newSession.name,
-      date: newSession.startTime ? newSession.startTime.toISOString() : null,
+      date: newSession.startTime ? newSession.startTime.toISOString() : new Date().toISOString(),
       duration: newSession.duration,
       userId: newSession.userId,
       imageUrl: newSession.imageUrl
-    });
+    };
+
+    console.log('Sending response:', response);
+    res.status(201).json(response);
   } catch (error) {
     console.error("Error creating session:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// GET /admin/sessions - Get all sessions
+router.get("/sessions", async (req, res) => {
+  try {
+    console.log('Fetching all sessions...');
+    
+    const sessions = await prisma.workoutSession.findMany({
+      select: {
+        id: true,
+        name: true,
+        startTime: true,
+        duration: true,
+        userId: true,
+        imageUrl: true
+      },
+      orderBy: {
+        startTime: 'desc'
+      }
+    });
+
+    console.log(`Found ${sessions.length} sessions from database`);
+    
+    const sessionsResponse = sessions.map(session => {
+      const response = {
+        id: session.id,
+        name: session.name,
+        date: session.startTime ? session.startTime.toISOString() : new Date().toISOString(),
+        duration: session.duration,
+        userId: session.userId,
+        imageUrl: session.imageUrl
+      };
+      
+      console.log(`Session ${session.id}: startTime=${session.startTime?.toISOString() || 'NULL'}, mapped date=${response.date}`);
+      return response;
+    });
+
+    console.log('Sending sessions response with date fields');
+    res.json(sessionsResponse);
+  } catch (error) {
+    console.error("Error fetching sessions:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// GET /admin/sessions/:id - Get single session
+router.get("/sessions/:id", async (req, res) => {
+  try {
+    const sessionId = parseInt(req.params.id);
+
+    if (isNaN(sessionId)) {
+      return res.status(400).json({ error: "Invalid session ID" });
+    }
+
+    console.log(`Fetching session ${sessionId}...`);
+    
+    const session = await prisma.workoutSession.findUnique({
+      where: { id: sessionId },
+      select: {
+        id: true,
+        name: true,
+        startTime: true,
+        duration: true,
+        userId: true,
+        imageUrl: true
+      }
+    });
+
+    if (!session) {
+      return res.status(404).json({ error: "Session not found" });
+    }
+
+    console.log(`Found session ${sessionId}: startTime=${session.startTime?.toISOString() || 'NULL'}`);
+
+    const response = {
+      id: session.id,
+      name: session.name,
+      date: session.startTime ? session.startTime.toISOString() : new Date().toISOString(),
+      duration: session.duration,
+      userId: session.userId,
+      imageUrl: session.imageUrl
+    };
+
+    console.log(`Sending single session response: date=${response.date}`);
+    res.json(response);
+  } catch (error) {
+    console.error("Error fetching session:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -548,6 +648,7 @@ router.put("/sessions/:id", async (req, res) => {
       if (isNaN(sessionDate.getTime())) {
         return res.status(400).json({ error: "Invalid date format" });
       }
+      console.log('Updating session with date:', sessionDate.toISOString());
       updateData.startTime = sessionDate;
     }
 
@@ -565,14 +666,23 @@ router.put("/sessions/:id", async (req, res) => {
       }
     });
 
-    res.json({
+    console.log('Updated session:', {
+      id: updatedSession.id,
+      startTime: updatedSession.startTime,
+      startTimeISO: updatedSession.startTime ? updatedSession.startTime.toISOString() : 'NULL'
+    });
+
+    const response = {
       id: updatedSession.id,
       name: updatedSession.name,
-      date: updatedSession.startTime ? updatedSession.startTime.toISOString() : null,
+      date: updatedSession.startTime ? updatedSession.startTime.toISOString() : new Date().toISOString(),
       duration: updatedSession.duration,
       userId: updatedSession.userId,
       imageUrl: updatedSession.imageUrl
-    });
+    };
+
+    console.log('Sending update response:', response);
+    res.json(response);
   } catch (error) {
     console.error("Error updating session:", error);
     res.status(500).json({ error: "Internal server error" });
