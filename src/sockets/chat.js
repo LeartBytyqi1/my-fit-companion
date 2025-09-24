@@ -10,7 +10,7 @@ function registerChat(io, socket) {
   console.log('New socket connected:', socket.id);
 
   // Handle user authentication/identification
-  socket.on('chat:authenticate', ({ userId, username }) => {
+  socket.on('chat:authenticate', ({ userId, firstName, lastName, username }) => {
     try {
       if (!userId) {
         socket.emit('chat:error', { message: 'User ID is required' });
@@ -18,26 +18,35 @@ function registerChat(io, socket) {
       }
 
       // Store user info with socket
-      socket.userId = userId;
-      socket.username = username;
+      socket.userId = userId.toString(); // Ensure userId is string for consistency
+      
+      // Create username from firstName/lastName if not provided, or use provided username
+      socket.username = username || (firstName && lastName ? `${firstName} ${lastName}` : firstName || 'Unknown User');
       
       // Track connected users
-      connectedUsers.set(userId, {
+      connectedUsers.set(socket.userId, {
         socketId: socket.id,
-        username: username,
+        username: socket.username,
+        firstName: firstName || null,
+        lastName: lastName || null,
         lastSeen: new Date()
       });
 
       socket.emit('chat:authenticated', { 
-        userId, 
-        username,
+        userId: socket.userId, 
+        username: socket.username,
         message: 'Successfully authenticated' 
       });
 
       // Broadcast user online status to friends (you can implement friend logic later)
-      socket.broadcast.emit('chat:user_online', { userId, username });
+      socket.broadcast.emit('chat:user_online', { 
+        userId: socket.userId, 
+        username: socket.username,
+        firstName: firstName || null,
+        lastName: lastName || null
+      });
 
-      console.log(`User ${username} (${userId}) authenticated with socket ${socket.id}`);
+      console.log(`User ${socket.username} (${socket.userId}) authenticated with socket ${socket.id}`);
     } catch (error) {
       console.error('Authentication error:', error);
       socket.emit('chat:error', { message: 'Authentication failed' });
