@@ -1,36 +1,94 @@
 const router = require('express').Router();
 const prisma = require('../config/prisma');
-const auth = require('../middleware/auth');
-const adminAuth = require('../middleware/adminAuth');
 
-// Get all exercises
-router.get('/', async (req, res) => {
+// GET /exercises/:splitId - get exercises for a split (public)
+router.get('/exercises/:splitId', async (req, res) => {
   try {
-    const { muscleGroup, equipment, difficulty, search } = req.query;
-    
-    let where = {};
-    
-    if (muscleGroup) where.muscleGroup = muscleGroup;
-    if (equipment) where.equipment = equipment;
-    if (difficulty) where.difficulty = difficulty;
-    if (search) {
-      where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } }
-      ];
-    }
-    
+    const splitId = parseInt(req.params.splitId);
     const exercises = await prisma.exercise.findMany({
-      where,
-      include: {
-        createdBy: {
-          select: { id: true, name: true }
+      where: { splitId },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        videoId: true
+      }
+    });
+    const response = exercises.map(e => ({
+      id: e.id,
+      name: e.name,
+      description: e.description,
+      videoId: e.videoId
+    }));
+    res.json(response);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
+
+// Track recent exercise (when user clicks on exercise)
+router.post('/exercises/:exerciseId/recent', require('../middleware/auth'), async (req, res) => {
+  try {
+    const exerciseId = parseInt(req.params.exerciseId);
+    const userId = req.user.id;
+    
+    // Upsert: create or update the view timestamp
+    await prisma.recentExercise.upsert({
+      where: {
+        userId_exerciseId: {
+          userId,
+          exerciseId
         }
       },
-      orderBy: { name: 'asc' }
+      update: {
+        viewedAt: new Date()
+      },
+      create: {
+        userId,
+        exerciseId,
+        viewedAt: new Date()
+      }
     });
     
-    res.json(exercises);
+    res.json({ message: 'Recent exercise saved' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get recent exercises for user (for home screen)
+router.get('/exercises/recent', require('../middleware/auth'), async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const limit = parseInt(req.query.limit) || 5; // Default 5 recent exercises
+    
+    const recentViews = await prisma.recentExercise.findMany({
+      where: { userId },
+      include: {
+        exercise: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            videoId: true
+          }
+        }
+      },
+      orderBy: { viewedAt: 'desc' },
+      take: limit
+    });
+    
+    const response = recentViews.map(view => ({
+      id: view.exercise.id,
+      name: view.exercise.name,
+      description: view.exercise.description,
+      videoId: view.exercise.videoId,
+      lastViewedAt: view.viewedAt
+    }));
+    
+    res.json(response);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -43,7 +101,7 @@ router.get('/:id', async (req, res) => {
       where: { id: parseInt(req.params.id) },
       include: {
         createdBy: {
-          select: { id: true, name: true }
+          select: { id: true, firstName: true, lastName: true }
         }
       }
     });
@@ -58,104 +116,6 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// Create exercise (ADMIN ONLY)
-router.post('/', adminAuth, async (req, res) => {
-  try {
-    const {
-      name,
-      description,
-      instructions,
-      muscleGroup,
-      equipment,
-      difficulty,
-      imageUrl,
-      videoUrl
-    } = req.body;
 
-    // Validate required fields
-    if (!name) {
-      return res.status(400).json({ error: 'Exercise name is required' });
-    }
-    if (!muscleGroup) {
-      return res.status(400).json({ error: 'Muscle group is required' });
-    }
-    
-    const exercise = await prisma.exercise.create({
-      data: {
-        name,
-        description,
-        instructions,
-        muscleGroup,
-        equipment,
-        difficulty: difficulty || 'BEGINNER',
-        imageUrl,
-        videoUrl,
-        createdById: req.user.id
-      },
-      include: {
-        createdBy: {
-          select: { id: true, name: true }
-        }
-      }
-    });
-    
-    res.status(201).json(exercise);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Update exercise (ADMIN ONLY)
-router.put('/:id', adminAuth, async (req, res) => {
-  try {
-    const exerciseId = parseInt(req.params.id);
-    
-    // Check if exercise exists
-    const exercise = await prisma.exercise.findUnique({
-      where: { id: exerciseId }
-    });
-    
-    if (!exercise) {
-      return res.status(404).json({ error: 'Exercise not found' });
-    }
-    
-    const updatedExercise = await prisma.exercise.update({
-      where: { id: exerciseId },
-      data: req.body,
-      include: {
-        createdBy: {
-          select: { id: true, name: true }
-        }
-      }
-    });
-    
-    res.json(updatedExercise);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Delete exercise (ADMIN ONLY)
-router.delete('/:id', adminAuth, async (req, res) => {
-  try {
-    const exerciseId = parseInt(req.params.id);
-    
-    const exercise = await prisma.exercise.findUnique({
-      where: { id: exerciseId }
-    });
-    
-    if (!exercise) {
-      return res.status(404).json({ error: 'Exercise not found' });
-    }
-    
-    await prisma.exercise.delete({
-      where: { id: exerciseId }
-    });
-    
-    res.json({ message: 'Exercise deleted successfully' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
 
 module.exports = router;
