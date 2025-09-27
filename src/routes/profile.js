@@ -20,11 +20,29 @@ router.get('/', auth, async (req, res) => {
         bodyFatPct: true,
         goalWeightKg: true,
         goalBodyFatPct: true,
+        imageUrl: true,
         createdAt: true,
         updatedAt: true
       }
     });
-    res.json(user);
+    
+    // Transform to match Android field names
+    const response = {
+      id: user.id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      role: user.role,
+      height: user.heightCm,
+      weight: user.weightKg,
+      bodyFat: user.bodyFatPct,
+      goalBodyFat: user.goalBodyFatPct,
+      goalWeight: user.goalWeightKg,
+      imageUrl: user.imageUrl,
+      createdAt: user.createdAt.toISOString()
+    };
+    
+    res.json(response);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -33,7 +51,7 @@ router.get('/', auth, async (req, res) => {
 // Update user profile
 router.put('/', auth, async (req, res) => {
   try {
-    const { firstName, lastName, heightCm, weightKg, bodyFatPct, goalWeightKg, goalBodyFatPct } = req.body;
+    const { firstName, lastName, heightCm, weightKg, bodyFatPct, goalWeightKg, goalBodyFatPct, imageUrl } = req.body;
     
     const updatedUser = await prisma.user.update({
       where: { id: req.user.id },
@@ -44,7 +62,8 @@ router.put('/', auth, async (req, res) => {
         ...(weightKg && { weightKg: parseFloat(weightKg) }),
         ...(bodyFatPct && { bodyFatPct: parseFloat(bodyFatPct) }),
         ...(goalWeightKg && { goalWeightKg: parseFloat(goalWeightKg) }),
-        ...(goalBodyFatPct && { goalBodyFatPct: parseFloat(goalBodyFatPct) })
+        ...(goalBodyFatPct && { goalBodyFatPct: parseFloat(goalBodyFatPct) }),
+        ...(imageUrl && { imageUrl })
       },
       select: {
         id: true,
@@ -57,11 +76,27 @@ router.put('/', auth, async (req, res) => {
         bodyFatPct: true,
         goalWeightKg: true,
         goalBodyFatPct: true,
-        updatedAt: true
+        updatedAt: true,
+        imageUrl: true,
       }
     });
     
-    res.json(updatedUser);
+    // Transform response to match Android field names
+    const response = {
+      id: updatedUser.id,
+      firstName: updatedUser.firstName,
+      lastName: updatedUser.lastName,
+      email: updatedUser.email,
+      role: updatedUser.role,
+      height: updatedUser.heightCm,
+      weight: updatedUser.weightKg,
+      bodyFat: updatedUser.bodyFatPct,
+      goalBodyFat: updatedUser.goalBodyFatPct,
+      goalWeight: updatedUser.goalWeightKg,
+      imageUrl: updatedUser.imageUrl,
+    };
+    
+    res.json(response);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

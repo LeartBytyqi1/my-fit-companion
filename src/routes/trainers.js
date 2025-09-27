@@ -17,7 +17,7 @@ router.get("/", async (req, res) => {
         email: true,
         specialization: true,
         contactInfo: true,
-        profileImage: true, // Include profile image for public display
+        imageUrl: true,
         createdAt: true,
         updatedAt: true
       },
@@ -33,7 +33,7 @@ router.get("/", async (req, res) => {
       email: trainer.email,
       specialization: trainer.specialization,
       contactInfo: trainer.contactInfo,
-      profileImage: trainer.profileImage
+      imageUrl: trainer.imageUrl
     }));
 
     res.json(trainersResponse);
@@ -64,7 +64,7 @@ router.get("/:id", async (req, res) => {
         email: true,
         specialization: true,
         contactInfo: true,
-        profileImage: true,
+        imageUrl: true,
         createdAt: true,
         updatedAt: true
       }
@@ -81,7 +81,7 @@ router.get("/:id", async (req, res) => {
       email: trainer.email,
       specialization: trainer.specialization,
       contactInfo: trainer.contactInfo,
-      profileImage: trainer.profileImage
+      imageUrl: trainer.imageUrl
     };
 
     res.json(trainerResponse);

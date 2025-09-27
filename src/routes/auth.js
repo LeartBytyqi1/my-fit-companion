@@ -49,10 +49,12 @@ router.post("/register", async (req, res) => {
         lastName: newUser.lastName,
         email: newUser.email,
         role: newUser.role,
-        heightCm: newUser.heightCm,
-        weightKg: newUser.weightKg,
-        bodyFatPct: newUser.bodyFatPct,
-        goalWeightKg: newUser.goalWeightKg,
+        height: newUser.heightCm,
+        weight: newUser.weightKg,
+        bodyFat: newUser.bodyFatPct,
+        goalBodyFat: newUser.goalBodyFatPct,
+        goalWeight: newUser.goalWeightKg,
+        imageUrl: newUser.imageUrl,
         createdAt: newUser.createdAt.toISOString()
       },
       message: "User registered successfully" 
@@ -88,6 +90,12 @@ router.post("/login", async (req, res) => {
         lastName: user.lastName,
         email: user.email,
         role: user.role,
+        height: user.heightCm,
+        weight: user.weightKg,
+        bodyFat: user.bodyFatPct,
+        goalBodyFat: user.goalBodyFatPct,
+        goalWeight: user.goalWeightKg,
+        imageUrl: user.imageUrl,
         createdAt: user.createdAt.toISOString()
       } 
     });

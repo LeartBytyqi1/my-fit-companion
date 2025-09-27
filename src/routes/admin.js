@@ -25,7 +25,7 @@ router.get("/users", async (req, res) => {
         goalBodyFatPct: true,
         age: true,
         gender: true,
-        profileImage: true,
+        imageUrl: true,
         createdAt: true,
         updatedAt: true,
         // Exclude password field for security
@@ -49,7 +49,7 @@ router.get("/users", async (req, res) => {
       goalBodyFatPct: user.goalBodyFatPct,
       age: user.age,
       gender: user.gender,
-      profileImage: user.profileImage,
+      imageUrl: user.imageUrl,
       createdAt: user.createdAt.toISOString(),
       updatedAt: user.updatedAt.toISOString()
     }));
@@ -128,8 +128,7 @@ router.put("/users/:id", async (req, res) => {
         goalBodyFatPct: true,
         age: true,
         gender: true,
-        
-        profileImage: true,
+        imageUrl: true,
         createdAt: true,
         updatedAt: true,
       }
@@ -150,7 +149,7 @@ router.put("/users/:id", async (req, res) => {
       age: updatedUser.age,
       gender: updatedUser.gender,
       
-      profileImage: updatedUser.profileImage,
+      imageUrl: updatedUser.imageUrl,
       createdAt: updatedUser.createdAt.toISOString(),
       updatedAt: updatedUser.updatedAt.toISOString()
     };
@@ -1048,7 +1047,7 @@ router.post('/users', async (req, res) => {
         bodyFatPct: bodyFat,
         goalBodyFatPct: goalBodyFat,
         goalWeightKg: goalWeight,
-        profileImage: imageUrl
+        imageUrl: imageUrl
       },
       select: {
         id: true,
@@ -1061,7 +1060,7 @@ router.post('/users', async (req, res) => {
         bodyFatPct: true,
         goalBodyFatPct: true,
         goalWeightKg: true,
-        profileImage: true,
+        imageUrl: true,
         createdAt: true
       }
     });
@@ -1081,7 +1080,7 @@ router.post('/users', async (req, res) => {
       goalBodyFat: user.goalBodyFatPct,
       goalWeight: user.goalWeightKg,
       createdAt: user.createdAt.toISOString(),
-      imageUrl: user.profileImage
+      imageUrl: user.imageUrl
     });
 
   } catch (err) {
