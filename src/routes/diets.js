@@ -18,7 +18,7 @@ router.post('/', auth, async (req, res) => {
 
 router.get('/', async (_req, res) => {
   const items = await prisma.diet.findMany({
-    include: { createdBy: { select: { id: true, name: true } } },
+    include: { createdBy: { select: { id: true, firstName: true, lastName: true } } },
     orderBy: { createdAt: 'desc' }
   });
   res.json(items);

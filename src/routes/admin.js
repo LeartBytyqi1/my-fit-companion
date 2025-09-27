@@ -15,7 +15,6 @@ router.get("/users", async (req, res) => {
       select: {
         id: true,
         email: true,
-        name: true,
         firstName: true,
         lastName: true,
         role: true,
@@ -26,7 +25,6 @@ router.get("/users", async (req, res) => {
         goalBodyFatPct: true,
         age: true,
         gender: true,
-        activityLevel: true,
         profileImage: true,
         createdAt: true,
         updatedAt: true,
@@ -41,7 +39,6 @@ router.get("/users", async (req, res) => {
     const userResponse = users.map(user => ({
       id: user.id,
       email: user.email,
-      name: user.name,
       firstName: user.firstName,
       lastName: user.lastName,
       role: user.role,
@@ -52,7 +49,6 @@ router.get("/users", async (req, res) => {
       goalBodyFatPct: user.goalBodyFatPct,
       age: user.age,
       gender: user.gender,
-      activityLevel: user.activityLevel,
       profileImage: user.profileImage,
       createdAt: user.createdAt.toISOString(),
       updatedAt: user.updatedAt.toISOString()
@@ -65,97 +61,7 @@ router.get("/users", async (req, res) => {
   }
 });
 
-// POST /admin/users - Create new user
-router.post("/users", async (req, res) => {
-  try {
-    const { email, password, firstName, lastName, role } = req.body;
 
-    // Validate required fields
-    if (!email || !password || !firstName || !lastName || !role) {
-      return res.status(400).json({ 
-        error: "Missing required fields: email, password, firstName, lastName, role" 
-      });
-    }
-
-    // Validate role
-    const validRoles = ['USER', 'TRAINER', 'ADMIN'];
-    if (!validRoles.includes(role)) {
-      return res.status(400).json({ 
-        error: "Invalid role. Must be one of: USER, TRAINER, ADMIN" 
-      });
-    }
-
-    // Check if user already exists
-    const existingUser = await prisma.user.findUnique({ 
-      where: { email } 
-    });
-
-    if (existingUser) {
-      return res.status(400).json({ error: "Email already in use" });
-    }
-
-    // Hash password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
-    // Create user
-    const newUser = await prisma.user.create({
-      data: {
-        email,
-        password: hashedPassword,
-        firstName,
-        lastName,
-        name: `${firstName} ${lastName}`, // Keep name field for backward compatibility
-        role
-      },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        firstName: true,
-        lastName: true,
-        role: true,
-        heightCm: true,
-        weightKg: true,
-        bodyFatPct: true,
-        goalWeightKg: true,
-        goalBodyFatPct: true,
-        age: true,
-        gender: true,
-        activityLevel: true,
-        profileImage: true,
-        createdAt: true,
-        updatedAt: true,
-      }
-    });
-
-    // Transform response
-    const userResponse = {
-      id: newUser.id,
-      email: newUser.email,
-      name: newUser.name,
-      firstName: newUser.firstName,
-      lastName: newUser.lastName,
-      role: newUser.role,
-      heightCm: newUser.heightCm,
-      weightKg: newUser.weightKg,
-      bodyFatPct: newUser.bodyFatPct,
-      goalWeightKg: newUser.goalWeightKg,
-      goalBodyFatPct: newUser.goalBodyFatPct,
-      age: newUser.age,
-      gender: newUser.gender,
-      activityLevel: newUser.activityLevel,
-      profileImage: newUser.profileImage,
-      createdAt: newUser.createdAt.toISOString(),
-      updatedAt: newUser.updatedAt.toISOString()
-    };
-
-    res.status(201).json(userResponse);
-  } catch (error) {
-    console.error("Error creating user:", error);
-    res.status(500).json({ error: "Internal server error" });
-  }
-});
 
 // PUT /admin/users/:id - Update user
 router.put("/users/:id", async (req, res) => {
@@ -203,12 +109,7 @@ router.put("/users/:id", async (req, res) => {
     if (email !== undefined) updateData.email = email;
     if (role !== undefined) updateData.role = role;
 
-    // Update name field if firstName or lastName changed for backward compatibility
-    if (firstName !== undefined || lastName !== undefined) {
-      const newFirstName = firstName !== undefined ? firstName : existingUser.firstName;
-      const newLastName = lastName !== undefined ? lastName : existingUser.lastName;
-      updateData.name = `${newFirstName || ''} ${newLastName || ''}`.trim();
-    }
+
 
     // Update user
     const updatedUser = await prisma.user.update({
@@ -217,7 +118,6 @@ router.put("/users/:id", async (req, res) => {
       select: {
         id: true,
         email: true,
-        name: true,
         firstName: true,
         lastName: true,
         role: true,
@@ -228,7 +128,7 @@ router.put("/users/:id", async (req, res) => {
         goalBodyFatPct: true,
         age: true,
         gender: true,
-        activityLevel: true,
+        
         profileImage: true,
         createdAt: true,
         updatedAt: true,
@@ -239,7 +139,6 @@ router.put("/users/:id", async (req, res) => {
     const userResponse = {
       id: updatedUser.id,
       email: updatedUser.email,
-      name: updatedUser.name,
       firstName: updatedUser.firstName,
       lastName: updatedUser.lastName,
       role: updatedUser.role,
@@ -250,7 +149,7 @@ router.put("/users/:id", async (req, res) => {
       goalBodyFatPct: updatedUser.goalBodyFatPct,
       age: updatedUser.age,
       gender: updatedUser.gender,
-      activityLevel: updatedUser.activityLevel,
+      
       profileImage: updatedUser.profileImage,
       createdAt: updatedUser.createdAt.toISOString(),
       updatedAt: updatedUser.updatedAt.toISOString()
@@ -291,7 +190,7 @@ router.delete("/users/:id", async (req, res) => {
       where: { id: userId }
     });
 
-    res.status(204).send(); // No content response for successful deletion
+    res.json({ message: 'User deleted successfully' });
   } catch (error) {
     console.error("Error deleting user:", error);
     res.status(500).json({ error: "Internal server error" });
@@ -436,7 +335,7 @@ router.delete("/meals/:id", async (req, res) => {
       where: { id: mealId }
     });
 
-    res.status(204).send(); // No content response for successful deletion
+    res.json({ message: 'Meal deleted successfully' });
   } catch (error) {
     console.error("Error deleting meal:", error);
     res.status(500).json({ error: "Internal server error" });
@@ -712,7 +611,7 @@ router.delete("/sessions/:id", async (req, res) => {
       where: { id: sessionId }
     });
 
-    res.status(204).send(); // No content response for successful deletion
+    res.json({ message: 'Session deleted successfully' });
   } catch (error) {
     console.error("Error deleting session:", error);
     res.status(500).json({ error: "Internal server error" });
@@ -882,7 +781,7 @@ router.delete("/exercises/:id", async (req, res) => {
       where: { id: exerciseId }
     });
 
-    res.status(204).send(); // No content response for successful deletion
+    res.json({ message: 'Exercise deleted successfully' });
   } catch (error) {
     console.error("Error deleting exercise:", error);
     res.status(500).json({ error: "Internal server error" });
@@ -1033,12 +932,7 @@ router.put("/trainers/:id", async (req, res) => {
     if (specialization !== undefined) updateData.specialization = specialization;
     if (contactInfo !== undefined) updateData.contactInfo = contactInfo;
 
-    // Update name field if firstName or lastName changed for backward compatibility
-    if (firstName !== undefined || lastName !== undefined) {
-      const newFirstName = firstName !== undefined ? firstName : existingTrainer.firstName;
-      const newLastName = lastName !== undefined ? lastName : existingTrainer.lastName;
-      updateData.name = `${newFirstName || ''} ${newLastName || ''}`.trim();
-    }
+
 
     // Update trainer
     const updatedTrainer = await prisma.user.update({
@@ -1102,10 +996,417 @@ router.delete("/trainers/:id", async (req, res) => {
       where: { id: trainerId }
     });
 
-    res.status(204).send(); // No content response for successful deletion
+    res.json({ message: 'Trainer deleted successfully' });
   } catch (error) {
     console.error("Error deleting trainer:", error);
     res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// WORKOUT ADMIN ROUTES
+
+// Create a workout
+router.post('/workouts', async (req, res) => {
+  try {
+    console.log('=== CREATE WORKOUT REQUEST ===');
+    console.log('Request body:', req.body);
+    console.log('User:', req.user);
+    
+    const { name, description, imageUrl } = req.body;
+    if (!name) {
+      console.log('ERROR: Name is missing');
+      return res.status(400).json({ error: 'Name is required' });
+    }
+    
+    console.log('Creating workout with data:', {
+      title: name,
+      description,
+      imageUrl,
+      createdById: req.user.id
+    });
+    
+    const workout = await prisma.workout.create({
+      data: {
+        title: name,
+        description,
+        imageUrl,
+        createdById: req.user.id
+      }
+    });
+    
+    console.log('Workout created successfully:', workout);
+    
+    res.status(201).json({
+      id: workout.id,
+      name: workout.title,
+      description: workout.description,
+      imageUrl: workout.imageUrl || null
+    });
+  } catch (err) {
+    console.error('=== ERROR CREATING WORKOUT ===');
+    console.error('Error message:', err.message);
+    console.error('Full error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Update a workout
+router.put('/workouts/:workoutId', async (req, res) => {
+  try {
+    const workoutId = parseInt(req.params.workoutId);
+    const { name, description, imageUrl } = req.body;
+    const workout = await prisma.workout.update({
+      where: { id: workoutId },
+      data: {
+        ...(name && { title: name }),
+        ...(description !== undefined && { description }),
+        ...(imageUrl !== undefined && { imageUrl })
+      }
+    });
+    res.json({
+      id: workout.id,
+      name: workout.title,
+      description: workout.description,
+      imageUrl: workout.imageUrl || null
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Delete a workout
+router.delete('/workouts/:workoutId', async (req, res) => {
+  try {
+    const workoutId = parseInt(req.params.workoutId);
+    
+    console.log(`[ADMIN] Deleting workout ID: ${workoutId}`);
+    
+    // First, get all splits for this workout
+    const splits = await prisma.workoutSplit.findMany({
+      where: { workoutId },
+      select: { id: true }
+    });
+    
+    console.log(`[ADMIN] Found ${splits.length} splits to delete`);
+    
+    // Delete all exercises for each split
+    for (const split of splits) {
+      await prisma.exercise.deleteMany({
+        where: { splitId: split.id }
+      });
+      console.log(`[ADMIN] Deleted exercises for split ID: ${split.id}`);
+    }
+    
+    // Delete all splits for this workout
+    await prisma.workoutSplit.deleteMany({
+      where: { workoutId }
+    });
+    console.log(`[ADMIN] Deleted all workout splits`);
+    
+    // Finally, delete the workout
+    await prisma.workout.delete({ where: { id: workoutId } });
+    console.log(`[ADMIN] Workout deleted successfully`);
+    
+    res.json({ message: 'Workout and all related data deleted successfully' });
+  } catch (err) {
+    console.error(`[ADMIN] Error deleting workout:`, err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// MEAL ADMIN ROUTES
+
+// Create a meal
+router.post('/meals', async (req, res) => {
+  try {
+    const { name, type, calories, description } = req.body;
+    if (!name) {
+      return res.status(400).json({ error: 'Name is required' });
+    }
+    const meal = await prisma.meal.create({
+      data: {
+        name,
+        type,
+        calories: calories || 0,
+        description
+      }
+    });
+    res.status(201).json({
+      id: meal.id,
+      name: meal.name,
+      type: meal.type,
+      calories: meal.calories,
+      description: meal.description
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Update a meal
+router.put('/meals/:id', async (req, res) => {
+  try {
+    const mealId = parseInt(req.params.id);
+    const { name, type, calories, description } = req.body;
+    const meal = await prisma.meal.update({
+      where: { id: mealId },
+      data: {
+        ...(name && { name }),
+        ...(type && { type }),
+        ...(calories !== undefined && { calories }),
+        ...(description !== undefined && { description })
+      }
+    });
+    res.json({
+      id: meal.id,
+      name: meal.name,
+      type: meal.type,
+      calories: meal.calories,
+      description: meal.description
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
+
+// WORKOUT SPLIT ADMIN ROUTES
+
+// Create a workout split
+router.post('/workouts/:workoutId/splits', async (req, res) => {
+  try {
+    const workoutId = parseInt(req.params.workoutId);
+    const { name, description, imageUrl } = req.body;
+    if (!name) {
+      return res.status(400).json({ error: 'Name is required' });
+    }
+    const split = await prisma.workoutSplit.create({
+      data: {
+        workoutId,
+        name,
+        description,
+        imageUrl
+      }
+    });
+    res.status(201).json({
+      id: split.id,
+      name: split.name,
+      description: split.description,
+      imageUrl: split.imageUrl || null
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Update a workout split
+router.put('/splits/:splitId', async (req, res) => {
+  try {
+    const splitId = parseInt(req.params.splitId);
+    const { name, description, imageUrl } = req.body;
+    const split = await prisma.workoutSplit.update({
+      where: { id: splitId },
+      data: {
+        ...(name && { name }),
+        ...(description !== undefined && { description }),
+        ...(imageUrl !== undefined && { imageUrl })
+      }
+    });
+    res.json({
+      id: split.id,
+      name: split.name,
+      description: split.description,
+      imageUrl: split.imageUrl || null
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Delete a workout split
+router.delete('/splits/:splitId', async (req, res) => {
+  try {
+    const splitId = parseInt(req.params.splitId);
+    
+    console.log(`[ADMIN] Deleting split ID: ${splitId}`);
+    
+    // First, delete all exercises for this split
+    await prisma.exercise.deleteMany({
+      where: { splitId }
+    });
+    console.log(`[ADMIN] Deleted exercises for split ID: ${splitId}`);
+    
+    // Then delete the split
+    await prisma.workoutSplit.delete({ where: { id: splitId } });
+    console.log(`[ADMIN] Split deleted successfully`);
+    
+    res.json({ message: 'Workout split and all exercises deleted successfully' });
+  } catch (err) {
+    console.error(`[ADMIN] Error deleting split:`, err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// EXERCISE ADMIN ROUTES
+
+// Create an exercise
+router.post('/splits/:splitId/exercises', async (req, res) => {
+  try {
+    const splitId = parseInt(req.params.splitId);
+    const { name, description, videoId } = req.body;
+    if (!name || !videoId) {
+      return res.status(400).json({ error: 'Name and videoId are required' });
+    }
+    const exercise = await prisma.exercise.create({
+      data: {
+        splitId,
+        name,
+        description,
+        videoId,
+        createdById: req.user.id
+      }
+    });
+    res.status(201).json({
+      id: exercise.id,
+      name: exercise.name,
+      description: exercise.description,
+      videoId: exercise.videoId
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Update an exercise
+router.put('/exercises/:exerciseId', async (req, res) => {
+  try {
+    const exerciseId = parseInt(req.params.exerciseId);
+    const { name, description, videoId } = req.body;
+    const exercise = await prisma.exercise.update({
+      where: { id: exerciseId },
+      data: {
+        ...(name && { name }),
+        ...(description !== undefined && { description }),
+        ...(videoId && { videoId })
+      }
+    });
+    res.json({
+      id: exercise.id,
+      name: exercise.name,
+      description: exercise.description,
+      videoId: exercise.videoId
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Delete an exercise
+router.delete('/exercises/:exerciseId', async (req, res) => {
+  try {
+    const exerciseId = parseInt(req.params.exerciseId);
+    await prisma.exercise.delete({ where: { id: exerciseId } });
+    res.json({ message: 'Exercise deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// USER ADMIN ROUTES
+
+// Create a user (Admin only - matches Android app expectation)
+router.post('/users', async (req, res) => {
+  try {
+    const { 
+      firstName, 
+      lastName, 
+      email, 
+      password, 
+      role, 
+      username,
+      height,
+      weight,
+      bodyFat,
+      goalBodyFat,
+      goalWeight,
+      imageUrl 
+    } = req.body;
+
+    console.log(`[ADMIN] Creating user with email: ${email}, role: ${role}`);
+
+    // Validate required fields
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+
+    // Check if user already exists
+    const existingUser = await prisma.user.findUnique({
+      where: { email }
+    });
+
+    if (existingUser) {
+      return res.status(400).json({ error: 'User with this email already exists' });
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create user
+    const user = await prisma.user.create({
+      data: {
+        firstName,
+        lastName,
+        email,
+        password: hashedPassword,
+        role: role || 'USER',
+        username,
+        heightCm: height,
+        weightKg: weight,
+        bodyFatPct: bodyFat,
+        goalBodyFatPct: goalBodyFat,
+        goalWeightKg: goalWeight,
+        profileImage: imageUrl
+      },
+      select: {
+        id: true,
+        username: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        role: true,
+        heightCm: true,
+        weightKg: true,
+        bodyFatPct: true,
+        goalBodyFatPct: true,
+        goalWeightKg: true,
+        profileImage: true,
+        createdAt: true
+      }
+    });
+
+    console.log(`[ADMIN] User created successfully with ID: ${user.id}`);
+
+    // Return response matching Android UserResponse format
+    res.status(201).json({
+      id: user.id,
+      username: user.username,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      role: user.role,
+      height: user.heightCm,
+      weight: user.weightKg,
+      bodyFat: user.bodyFatPct,
+      goalBodyFat: user.goalBodyFatPct,
+      goalWeight: user.goalWeightKg,
+      createdAt: user.createdAt.toISOString(),
+      imageUrl: user.profileImage
+    });
+
+  } catch (err) {
+    console.error(`[ADMIN] Error creating user:`, err);
+    res.status(500).json({ error: err.message });
   }
 });
 
