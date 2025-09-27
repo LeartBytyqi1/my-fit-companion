@@ -26,38 +26,6 @@ router.get('/exercises/:splitId', async (req, res) => {
   }
 });
 
-
-
-// Track recent exercise (when user clicks on exercise)
-router.post('/exercises/:exerciseId/recent', require('../middleware/auth'), async (req, res) => {
-  try {
-    const exerciseId = parseInt(req.params.exerciseId);
-    const userId = req.user.id;
-    
-    // Upsert: create or update the view timestamp
-    await prisma.recentExercise.upsert({
-      where: {
-        userId_exerciseId: {
-          userId,
-          exerciseId
-        }
-      },
-      update: {
-        viewedAt: new Date()
-      },
-      create: {
-        userId,
-        exerciseId,
-        viewedAt: new Date()
-      }
-    });
-    
-    res.json({ message: 'Recent exercise saved' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
 // Get recent exercises for user (for home screen)
 router.get('/exercises/recent', require('../middleware/auth'), async (req, res) => {
   try {
@@ -94,6 +62,36 @@ router.get('/exercises/recent', require('../middleware/auth'), async (req, res) 
   }
 });
 
+// Track recent exercise (when user clicks on exercise)
+router.post('/exercises/:exerciseId/recent', require('../middleware/auth'), async (req, res) => {
+  try {
+    const exerciseId = parseInt(req.params.exerciseId);
+    const userId = req.user.id;
+    
+    // Upsert: create or update the view timestamp
+    await prisma.recentExercise.upsert({
+      where: {
+        userId_exerciseId: {
+          userId,
+          exerciseId
+        }
+      },
+      update: {
+        viewedAt: new Date()
+      },
+      create: {
+        userId,
+        exerciseId,
+        viewedAt: new Date()
+      }
+    });
+    
+    res.json({ message: 'Recent exercise saved' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Get exercise by ID
 router.get('/:id', async (req, res) => {
   try {
@@ -115,7 +113,5 @@ router.get('/:id', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
-
 
 module.exports = router;
