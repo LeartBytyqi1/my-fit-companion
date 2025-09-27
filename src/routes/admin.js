@@ -696,14 +696,14 @@ router.post('/workouts', async (req, res) => {
     console.log('Request body:', req.body);
     console.log('User:', req.user);
     
-    const { name, description, imageUrl } = req.body;
-    if (!name) {
-      console.log('ERROR: Name is missing');
-      return res.status(400).json({ error: 'Name is required' });
+    const { title, description, imageUrl } = req.body;  // Changed from name to title
+    if (!title) {
+      console.log('ERROR: Title is missing');
+      return res.status(400).json({ error: 'Title is required' });
     }
     
     console.log('Creating workout with data:', {
-      title: name,
+      title,
       description,
       imageUrl,
       createdById: req.user.id
@@ -711,7 +711,7 @@ router.post('/workouts', async (req, res) => {
     
     const workout = await prisma.workout.create({
       data: {
-        title: name,
+        title,              // Direct mapping
         description,
         imageUrl,
         createdById: req.user.id
@@ -722,7 +722,7 @@ router.post('/workouts', async (req, res) => {
     
     res.status(201).json({
       id: workout.id,
-      name: workout.title,
+      title: workout.title,       // Direct mapping
       description: workout.description,
       imageUrl: workout.imageUrl || null
     });
@@ -738,18 +738,18 @@ router.post('/workouts', async (req, res) => {
 router.put('/workouts/:workoutId', async (req, res) => {
   try {
     const workoutId = parseInt(req.params.workoutId);
-    const { name, description, imageUrl } = req.body;
+    const { title, description, imageUrl } = req.body;  // Changed from name to title
     const workout = await prisma.workout.update({
       where: { id: workoutId },
       data: {
-        ...(name && { title: name }),
+        ...(title && { title }),        // Direct mapping
         ...(description !== undefined && { description }),
         ...(imageUrl !== undefined && { imageUrl })
       }
     });
     res.json({
       id: workout.id,
-      name: workout.title,
+      title: workout.title,             // Direct mapping
       description: workout.description,
       imageUrl: workout.imageUrl || null
     });
@@ -1008,7 +1008,6 @@ router.post('/users', async (req, res) => {
       email, 
       password, 
       role, 
-      username,
       height,
       weight,
       bodyFat,
@@ -1044,7 +1043,6 @@ router.post('/users', async (req, res) => {
         email,
         password: hashedPassword,
         role: role || 'USER',
-        username,
         heightCm: height,
         weightKg: weight,
         bodyFatPct: bodyFat,
@@ -1054,7 +1052,6 @@ router.post('/users', async (req, res) => {
       },
       select: {
         id: true,
-        username: true,
         firstName: true,
         lastName: true,
         email: true,
@@ -1074,7 +1071,6 @@ router.post('/users', async (req, res) => {
     // Return response matching Android UserResponse format
     res.status(201).json({
       id: user.id,
-      username: user.username,
       firstName: user.firstName,
       lastName: user.lastName,
       email: user.email,
