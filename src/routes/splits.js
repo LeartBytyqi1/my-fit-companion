@@ -12,20 +12,21 @@ router.get('/splits/:workoutId', async (req, res) => {
         name: true,
         description: true,
         imageUrl: true
+      },
+      orderBy: {
+        id: 'asc' // Or any order you prefer
       }
     });
-    const response = splits.map(s => ({
-      id: s.id,
-      name: s.name,
-      description: s.description,
-      imageUrl: s.imageUrl || null
+    const response = splits.map(split => ({
+      id: split.id,        // Maps to splitId in Android
+      name: split.name,
+      description: split.description,
+      imageUrl: split.imageUrl
     }));
     res.json(response);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
-
-
 
 module.exports = router;

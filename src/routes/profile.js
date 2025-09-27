@@ -12,7 +12,8 @@ router.get('/', auth, async (req, res) => {
       select: {
         id: true,
         email: true,
-        name: true,
+        firstName: true,
+        lastName: true,
         role: true,
         heightCm: true,
         weightKg: true,
@@ -32,13 +33,14 @@ router.get('/', auth, async (req, res) => {
 // Update user profile
 router.put('/', auth, async (req, res) => {
   try {
-    const { name, heightCm, weightKg, bodyFatPct, goalWeightKg, goalBodyFatPct } = req.body;
+    const { firstName, lastName, heightCm, weightKg, bodyFatPct, goalWeightKg, goalBodyFatPct } = req.body;
     
     const updatedUser = await prisma.user.update({
       where: { id: req.user.id },
       data: {
-        ...(name && { name }),
-        ...(heightCm && { heightCm: parseInt(heightCm) }),
+        ...(firstName && { firstName }),
+        ...(lastName && { lastName }),
+        ...(heightCm && { heightCm: parseFloat(heightCm) }),
         ...(weightKg && { weightKg: parseFloat(weightKg) }),
         ...(bodyFatPct && { bodyFatPct: parseFloat(bodyFatPct) }),
         ...(goalWeightKg && { goalWeightKg: parseFloat(goalWeightKg) }),
@@ -47,7 +49,8 @@ router.put('/', auth, async (req, res) => {
       select: {
         id: true,
         email: true,
-        name: true,
+        firstName: true,
+        lastName: true,
         role: true,
         heightCm: true,
         weightKg: true,
@@ -146,7 +149,8 @@ router.put('/change-email', auth, async (req, res) => {
       data: { email: newEmail },
       select: {
         id: true,
-        name: true,
+        firstName: true,
+        lastName: true,
         email: true,
         role: true
       }

@@ -16,7 +16,7 @@ router.get('/', async (req, res) => {
     });
     const response = workouts.map(w => ({
       id: w.id,
-      name: w.title,
+      title: w.title,        // Direct mapping, no transformation
       description: w.description,
       imageUrl: w.imageUrl || null
     }));
@@ -35,23 +35,17 @@ router.get('/:id', async (req, res) => {
       where: { id: workoutId },
       include: { 
         createdBy: { select: { id: true, firstName: true, lastName: true } },
-        exercises: {
+        splits: {
           include: {
-            exercise: {
+            exercises: {
               select: {
                 id: true,
                 name: true,
                 description: true,
-                instructions: true,
-                muscleGroup: true,
-                equipment: true,
-                difficulty: true,
-                imageUrl: true,
-                videoUrl: true
+                videoId: true
               }
             }
-          },
-          orderBy: { order: 'asc' }
+          }
         }
       }
     });
@@ -60,12 +54,20 @@ router.get('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Workout not found' });
     }
     
-    res.json(workout);
+    // Transform response to use title directly
+    const response = {
+      id: workout.id,
+      title: workout.title,     // Direct mapping
+      description: workout.description,
+      imageUrl: workout.imageUrl,
+      createdBy: workout.createdBy,
+      splits: workout.splits
+    };
+    
+    res.json(response);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
-
-
 
 module.exports = router;

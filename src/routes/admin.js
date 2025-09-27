@@ -342,330 +342,36 @@ router.delete("/meals/:id", async (req, res) => {
   }
 });
 
-// ===== SESSIONS ENDPOINTS =====
-
-// POST /admin/sessions - Create new session
-router.post("/sessions", async (req, res) => {
-  try {
-    const { name, date, duration, userId, imageUrl } = req.body;
-
-    // Validate required fields
-    if (!name || !date || !duration || !userId) {
-      return res.status(400).json({ 
-        error: "Missing required fields: name, date, duration, userId" 
-      });
-    }
-
-    // Validate userId exists
-    const user = await prisma.user.findUnique({
-      where: { id: userId }
-    });
-
-    if (!user) {
-      return res.status(400).json({ error: "User not found" });
-    }
-
-    // Convert date from millis to Date object
-    const sessionDate = new Date(date);
-    if (isNaN(sessionDate.getTime())) {
-      return res.status(400).json({ error: "Invalid date format" });
-    }
-
-    console.log('Creating session with date:', sessionDate.toISOString());
-
-    // Create session
-    const newSession = await prisma.workoutSession.create({
-      data: {
-        name,
-        userId,
-        startTime: sessionDate,
-        duration,
-        imageUrl: imageUrl || null,
-        completed: false
-      },
-      select: {
-        id: true,
-        name: true,
-        startTime: true,
-        duration: true,
-        userId: true,
-        imageUrl: true
-      }
-    });
-
-    console.log('Created session:', {
-      id: newSession.id,
-      startTime: newSession.startTime,
-      startTimeISO: newSession.startTime ? newSession.startTime.toISOString() : 'NULL'
-    });
-
-    const response = {
-      id: newSession.id,
-      name: newSession.name,
-      date: newSession.startTime ? newSession.startTime.toISOString() : new Date().toISOString(),
-      duration: newSession.duration,
-      userId: newSession.userId,
-      imageUrl: newSession.imageUrl
-    };
-
-    console.log('Sending response:', response);
-    res.status(201).json(response);
-  } catch (error) {
-    console.error("Error creating session:", error);
-    res.status(500).json({ error: "Internal server error" });
-  }
-});
-
-// GET /admin/sessions - Get all sessions
-router.get("/sessions", async (req, res) => {
-  try {
-    console.log('Fetching all sessions...');
-    
-    const sessions = await prisma.workoutSession.findMany({
-      select: {
-        id: true,
-        name: true,
-        startTime: true,
-        duration: true,
-        userId: true,
-        imageUrl: true
-      },
-      orderBy: {
-        startTime: 'desc'
-      }
-    });
-
-    console.log(`Found ${sessions.length} sessions from database`);
-    
-    const sessionsResponse = sessions.map(session => {
-      const response = {
-        id: session.id,
-        name: session.name,
-        date: session.startTime ? session.startTime.toISOString() : new Date().toISOString(),
-        duration: session.duration,
-        userId: session.userId,
-        imageUrl: session.imageUrl
-      };
-      
-      console.log(`Session ${session.id}: startTime=${session.startTime?.toISOString() || 'NULL'}, mapped date=${response.date}`);
-      return response;
-    });
-
-    console.log('Sending sessions response with date fields');
-    res.json(sessionsResponse);
-  } catch (error) {
-    console.error("Error fetching sessions:", error);
-    res.status(500).json({ error: "Internal server error" });
-  }
-});
-
-// GET /admin/sessions/:id - Get single session
-router.get("/sessions/:id", async (req, res) => {
-  try {
-    const sessionId = parseInt(req.params.id);
-
-    if (isNaN(sessionId)) {
-      return res.status(400).json({ error: "Invalid session ID" });
-    }
-
-    console.log(`Fetching session ${sessionId}...`);
-    
-    const session = await prisma.workoutSession.findUnique({
-      where: { id: sessionId },
-      select: {
-        id: true,
-        name: true,
-        startTime: true,
-        duration: true,
-        userId: true,
-        imageUrl: true
-      }
-    });
-
-    if (!session) {
-      return res.status(404).json({ error: "Session not found" });
-    }
-
-    console.log(`Found session ${sessionId}: startTime=${session.startTime?.toISOString() || 'NULL'}`);
-
-    const response = {
-      id: session.id,
-      name: session.name,
-      date: session.startTime ? session.startTime.toISOString() : new Date().toISOString(),
-      duration: session.duration,
-      userId: session.userId,
-      imageUrl: session.imageUrl
-    };
-
-    console.log(`Sending single session response: date=${response.date}`);
-    res.json(response);
-  } catch (error) {
-    console.error("Error fetching session:", error);
-    res.status(500).json({ error: "Internal server error" });
-  }
-});
-
-// PUT /admin/sessions/:id - Update session
-router.put("/sessions/:id", async (req, res) => {
-  try {
-    const sessionId = parseInt(req.params.id);
-    const { name, date, duration, userId, imageUrl } = req.body;
-
-    if (isNaN(sessionId)) {
-      return res.status(400).json({ error: "Invalid session ID" });
-    }
-
-    // Check if session exists
-    const existingSession = await prisma.workoutSession.findUnique({
-      where: { id: sessionId }
-    });
-
-    if (!existingSession) {
-      return res.status(404).json({ error: "Session not found" });
-    }
-
-    // Validate userId if provided
-    if (userId !== undefined) {
-      const user = await prisma.user.findUnique({
-        where: { id: userId }
-      });
-
-      if (!user) {
-        return res.status(400).json({ error: "User not found" });
-      }
-    }
-
-    // Build update data object
-    const updateData = {};
-    if (name !== undefined) updateData.name = name;
-    if (userId !== undefined) updateData.userId = userId;
-    if (duration !== undefined) updateData.duration = duration;
-    if (imageUrl !== undefined) updateData.imageUrl = imageUrl;
-    
-    if (date !== undefined) {
-      const sessionDate = new Date(date);
-      if (isNaN(sessionDate.getTime())) {
-        return res.status(400).json({ error: "Invalid date format" });
-      }
-      console.log('Updating session with date:', sessionDate.toISOString());
-      updateData.startTime = sessionDate;
-    }
-
-    // Update session
-    const updatedSession = await prisma.workoutSession.update({
-      where: { id: sessionId },
-      data: updateData,
-      select: {
-        id: true,
-        name: true,
-        startTime: true,
-        duration: true,
-        userId: true,
-        imageUrl: true
-      }
-    });
-
-    console.log('Updated session:', {
-      id: updatedSession.id,
-      startTime: updatedSession.startTime,
-      startTimeISO: updatedSession.startTime ? updatedSession.startTime.toISOString() : 'NULL'
-    });
-
-    const response = {
-      id: updatedSession.id,
-      name: updatedSession.name,
-      date: updatedSession.startTime ? updatedSession.startTime.toISOString() : new Date().toISOString(),
-      duration: updatedSession.duration,
-      userId: updatedSession.userId,
-      imageUrl: updatedSession.imageUrl
-    };
-
-    console.log('Sending update response:', response);
-    res.json(response);
-  } catch (error) {
-    console.error("Error updating session:", error);
-    res.status(500).json({ error: "Internal server error" });
-  }
-});
-
-// DELETE /admin/sessions/:id - Delete session
-router.delete("/sessions/:id", async (req, res) => {
-  try {
-    const sessionId = parseInt(req.params.id);
-
-    if (isNaN(sessionId)) {
-      return res.status(400).json({ error: "Invalid session ID" });
-    }
-
-    // Check if session exists
-    const existingSession = await prisma.workoutSession.findUnique({
-      where: { id: sessionId }
-    });
-
-    if (!existingSession) {
-      return res.status(404).json({ error: "Session not found" });
-    }
-
-    // Delete session
-    await prisma.workoutSession.delete({
-      where: { id: sessionId }
-    });
-
-    res.json({ message: 'Session deleted successfully' });
-  } catch (error) {
-    console.error("Error deleting session:", error);
-    res.status(500).json({ error: "Internal server error" });
-  }
-});
-
 // ===== EXERCISES ENDPOINTS =====
 
 // POST /admin/exercises - Create new exercise
 router.post("/exercises", async (req, res) => {
   try {
-    const { name, type, duration, caloriesBurned } = req.body;
+    const { name, description, videoId, splitId } = req.body;
 
     // Validate required fields
-    if (!name || !type || duration === undefined || caloriesBurned === undefined) {
+    if (!name || !videoId || !splitId) {
       return res.status(400).json({ 
-        error: "Missing required fields: name, type, duration, caloriesBurned" 
+        error: "Missing required fields: name, videoId, splitId" 
       });
     }
-
-    // Validate numeric fields
-    if (typeof duration !== 'number' || duration <= 0) {
-      return res.status(400).json({ 
-        error: "Duration must be a positive number (in minutes)" 
-      });
-    }
-
-    if (typeof caloriesBurned !== 'number' || caloriesBurned < 0) {
-      return res.status(400).json({ 
-        error: "Calories burned must be a non-negative number" 
-      });
-    }
-
-    // We need a createdById field - use the admin user's ID
-    const adminUser = req.user; // from auth middleware
 
     // Create exercise
     const newExercise = await prisma.exercise.create({
       data: {
         name,
-        type,
-        duration,
-        caloriesBurned,
-        muscleGroup: type, // Use type as muscle group for simplicity
-        createdById: adminUser.id
+        description,
+        videoId,
+        splitId: parseInt(splitId),
+        createdById: req.user.id
       }
     });
 
     res.status(201).json({
       id: newExercise.id,
       name: newExercise.name,
-      type: newExercise.type,
-      duration: newExercise.duration,
-      caloriesBurned: newExercise.caloriesBurned
+      description: newExercise.description,
+      videoId: newExercise.videoId
     });
   } catch (error) {
     console.error("Error creating exercise:", error);
@@ -685,9 +391,8 @@ router.get("/exercises", async (req, res) => {
     const exercisesResponse = exercises.map(exercise => ({
       id: exercise.id,
       name: exercise.name,
-      type: exercise.type,
-      duration: exercise.duration,
-      caloriesBurned: exercise.caloriesBurned
+      description: exercise.description,
+      videoId: exercise.videoId
     }));
 
     res.json(exercisesResponse);
@@ -701,7 +406,7 @@ router.get("/exercises", async (req, res) => {
 router.put("/exercises/:id", async (req, res) => {
   try {
     const exerciseId = parseInt(req.params.id);
-    const { name, type, duration, caloriesBurned } = req.body;
+    const { name, description, videoId } = req.body;
 
     if (isNaN(exerciseId)) {
       return res.status(400).json({ error: "Invalid exercise ID" });
@@ -716,28 +421,11 @@ router.put("/exercises/:id", async (req, res) => {
       return res.status(404).json({ error: "Exercise not found" });
     }
 
-    // Validate numeric fields if provided
-    if (duration !== undefined && (typeof duration !== 'number' || duration <= 0)) {
-      return res.status(400).json({ 
-        error: "Duration must be a positive number (in minutes)" 
-      });
-    }
-
-    if (caloriesBurned !== undefined && (typeof caloriesBurned !== 'number' || caloriesBurned < 0)) {
-      return res.status(400).json({ 
-        error: "Calories burned must be a non-negative number" 
-      });
-    }
-
     // Build update data object
     const updateData = {};
     if (name !== undefined) updateData.name = name;
-    if (type !== undefined) {
-      updateData.type = type;
-      updateData.muscleGroup = type; // Update muscle group as well
-    }
-    if (duration !== undefined) updateData.duration = duration;
-    if (caloriesBurned !== undefined) updateData.caloriesBurned = caloriesBurned;
+    if (description !== undefined) updateData.description = description;
+    if (videoId !== undefined) updateData.videoId = videoId;
 
     // Update exercise
     const updatedExercise = await prisma.exercise.update({
@@ -748,9 +436,8 @@ router.put("/exercises/:id", async (req, res) => {
     res.json({
       id: updatedExercise.id,
       name: updatedExercise.name,
-      type: updatedExercise.type,
-      duration: updatedExercise.duration,
-      caloriesBurned: updatedExercise.caloriesBurned
+      description: updatedExercise.description,
+      videoId: updatedExercise.videoId
     });
   } catch (error) {
     console.error("Error updating exercise:", error);
@@ -777,9 +464,7 @@ router.delete("/exercises/:id", async (req, res) => {
     }
 
     // Delete exercise
-    await prisma.exercise.delete({
-      where: { id: exerciseId }
-    });
+    await prisma.exercise.delete({ where: { id: exerciseId } });
 
     res.json({ message: 'Exercise deleted successfully' });
   } catch (error) {
@@ -858,7 +543,6 @@ router.post("/trainers", async (req, res) => {
       data: {
         firstName,
         lastName,
-        name: `${firstName} ${lastName}`, // Keep name field for backward compatibility
         email,
         password: hashedPassword,
         role: 'TRAINER',
