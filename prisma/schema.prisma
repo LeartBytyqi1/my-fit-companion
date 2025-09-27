@@ -11,7 +11,6 @@ model User {
   id               Int              @id @default(autoincrement())
   email            String           @unique
   password         String
-  username         String?
   firstName        String?
   lastName         String?
   role             Role             @default(USER)
@@ -22,7 +21,7 @@ model User {
   goalBodyFatPct   Float?
   age              Int?
   gender           Gender?
-  profileImage     String?
+  imageUrl     String?
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
   contactInfo      String?
