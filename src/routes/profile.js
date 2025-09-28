@@ -106,7 +106,6 @@ router.put('/change-password', auth, async (req, res) => {
     });
 
     res.json({ 
-      success: true,
       message: "Password updated successfully" 
     });
   } catch (err) {
@@ -148,7 +147,14 @@ router.put('/change-email', auth, async (req, res) => {
         id: true,
         name: true,
         email: true,
-        role: true
+        role: true,
+        heightCm: true,
+        weightKg: true,
+        bodyFatPct: true,
+        goalWeightKg: true,
+        goalBodyFatPct: true,
+        createdAt: true,
+        updatedAt: true
       }
     });
 
@@ -159,12 +165,7 @@ router.put('/change-email', auth, async (req, res) => {
       { expiresIn: "7d" }
     );
 
-    res.json({ 
-      success: true,
-      message: "Email updated successfully",
-      token,
-      user: updatedUser
-    });
+    res.json(updatedUser);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
