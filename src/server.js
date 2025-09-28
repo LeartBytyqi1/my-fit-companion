@@ -21,6 +21,8 @@ const sessionRoutes = require('./routes/sessions');
 const nutritionRoutes = require('./routes/nutrition');
 const goalRoutes = require('./routes/goals');
 const trainersRoutes = require('./routes/trainers');
+const mealsRoutes = require('./routes/meals');
+const splitsRoutes = require('./routes/splits');
 
 const app = express();
 
@@ -73,6 +75,8 @@ app.use('/api/sessions', sessionRoutes);
 app.use('/api/nutrition', nutritionRoutes);
 app.use('/api/goals', goalRoutes);
 app.use('/api/trainers', trainersRoutes);
+app.use('/api/meals', mealsRoutes);
+app.use('/api', splitsRoutes);
 
 // HTTP + Socket.io server
 const server = http.createServer(app);

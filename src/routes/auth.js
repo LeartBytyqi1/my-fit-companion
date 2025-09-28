@@ -8,7 +8,7 @@ const router = express.Router();
 // REGISTER
 router.post("/register", async (req, res) => {
   try {
-    const { name, email, password, height, weight, bodyFat, goal } = req.body;
+    const { firstName, lastName, email, password, height, weight, bodyFat, goal } = req.body;
 
     // check if user exists
     const existing = await prisma.user.findUnique({ where: { email } });
@@ -20,7 +20,8 @@ router.post("/register", async (req, res) => {
 
     // Prepare user data - handle optional fields
     const userData = {
-      name,
+      firstName,
+      lastName,
       email,
       password: hashedPassword,
       ...(height && { heightCm: Math.round(height) }), // Convert to int for heightCm
@@ -44,13 +45,16 @@ router.post("/register", async (req, res) => {
       token,
       user: {
         id: newUser.id,
-        name: newUser.name,
+        firstName: newUser.firstName,
+        lastName: newUser.lastName,
         email: newUser.email,
         role: newUser.role,
-        heightCm: newUser.heightCm,
-        weightKg: newUser.weightKg,
-        bodyFatPct: newUser.bodyFatPct,
-        goalWeightKg: newUser.goalWeightKg,
+        height: newUser.heightCm,
+        weight: newUser.weightKg,
+        bodyFat: newUser.bodyFatPct,
+        goalBodyFat: newUser.goalBodyFatPct,
+        goalWeight: newUser.goalWeightKg,
+        imageUrl: newUser.imageUrl,
         createdAt: newUser.createdAt.toISOString()
       },
       message: "User registered successfully" 
@@ -82,9 +86,16 @@ router.post("/login", async (req, res) => {
       token, 
       user: { 
         id: user.id, 
-        name: user.name, 
+        firstName: user.firstName,
+        lastName: user.lastName,
         email: user.email,
         role: user.role,
+        height: user.heightCm,
+        weight: user.weightKg,
+        bodyFat: user.bodyFatPct,
+        goalBodyFat: user.goalBodyFatPct,
+        goalWeight: user.goalWeightKg,
+        imageUrl: user.imageUrl,
         createdAt: user.createdAt.toISOString()
       } 
     });
